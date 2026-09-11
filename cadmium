@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Cadmium launcher — runs the DAW with the installed Godot 4.7 runtime.
+set -euo pipefail
+# Resolved, not just dirname'd: this script is usually reached through a
+# symlink in ~/.local/bin, and the project is next to the real file.
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+HERE="$(cd "$(dirname "$SELF")" && pwd)"
+
+GODOT="${GODOT_BIN:-}"
+if [[ -z "$GODOT" ]]; then
+  for c in godot-beta godot4 godot Godot; do
+    if command -v "$c" >/dev/null 2>&1; then GODOT="$(command -v "$c")"; break; fi
+  done
+fi
+if [[ -z "$GODOT" ]]; then
+  echo "Cadmium: no Godot 4 binary found. Install godot (4.7+) or set GODOT_BIN." >&2
+  exit 1
+fi
+
+if [[ ! -f "$HERE/native/bin/libcadmium.linux.template_release.x86_64.so" ]]; then
+  echo "Cadmium: the audio engine is not built. Run:" >&2
+  echo "  cd $HERE/native && scons platform=linux target=template_release custom_api_file=\$PWD/extension_api.json -j\$(nproc)" >&2
+  exit 1
+fi
+
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  echo "Cadmium: ffmpeg not found — only .wav samples will load." >&2
+fi
+
+# Anything after -- reaches the app as user args, so a project path passed by the
+# desktop file is not mistaken for a Godot scene to run.
+if [[ $# -gt 0 ]]; then
+  exec "$GODOT" --path "$HERE" -- "$@"
+fi
+exec "$GODOT" --path "$HERE"

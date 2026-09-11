@@ -1,0 +1,8 @@
+; CdEqCurve, as a scene so the plugin panel loads it rather than building it.
+[gd_scene load_steps=2 format=3 uid="uid://cdvieweqcurve"]
+
+[ext_resource type="Script" path="res://ui/widgets/eq_curve.gd" id="1"]
+
+[node name="EqCurve" type="Control"]
+custom_minimum_size = Vector2(0, 190)
+script = ExtResource("1")

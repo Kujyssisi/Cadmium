@@ -1,0 +1,79 @@
+; What was left behind when Cadmium last stopped unexpectedly. The list and the
+; report are filled in crash_dialog.gd; the frame is here.
+[gd_scene load_steps=2 format=3 uid="uid://cdcrashdialog"]
+
+[ext_resource type="Script" path="res://ui/dialogs/crash_dialog.gd" id="1"]
+
+[node name="CrashDialog" type="Window"]
+title = "Crash Reports"
+size = Vector2i(780, 520)
+transient = true
+script = ExtResource("1")
+
+[node name="Root" type="PanelContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Dialog"
+
+[node name="Col" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Note" type="Label" parent="Root/Col"]
+layout_mode = 2
+text = "A plugin that falls over takes the program with it. These say what was being done at the time."
+theme_type_variation = &"MuteLabel"
+autowrap_mode = 3
+
+[node name="Split" type="HSplitContainer" parent="Root/Col"]
+layout_mode = 2
+size_flags_vertical = 3
+split_offset = 240
+
+[node name="List" type="ItemList" parent="Root/Col/Split"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="Body" type="PanelContainer" parent="Root/Col/Split"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"DarkPanel"
+
+[node name="Text" type="TextEdit" parent="Root/Col/Split/Body"]
+layout_mode = 2
+editable = false
+wrap_mode = 1
+
+[node name="Foot" type="HBoxContainer" parent="Root/Col"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Count" type="Label" parent="Root/Col/Foot"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_type_variation = &"MuteLabel"
+
+[node name="Copy" type="Button" parent="Root/Col/Foot"]
+layout_mode = 2
+focus_mode = 0
+text = "Copy"
+tooltip_text = "The whole report, on the clipboard, for sending to somebody"
+
+[node name="Folder" type="Button" parent="Root/Col/Foot"]
+layout_mode = 2
+focus_mode = 0
+text = "Open Folder"
+
+[node name="Delete" type="Button" parent="Root/Col/Foot"]
+layout_mode = 2
+focus_mode = 0
+text = "Delete"
+
+[node name="Close" type="Button" parent="Root/Col/Foot"]
+layout_mode = 2
+focus_mode = 0
+text = "Close"

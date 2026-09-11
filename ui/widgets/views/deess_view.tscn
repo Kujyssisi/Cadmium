@@ -1,0 +1,7 @@
+; CdDeessView, as a scene so the panel that shows it is loaded rather than built.
+[gd_scene load_steps=2 format=3 uid="uid://cdviewdeessview"]
+
+[ext_resource type="Script" path="res://ui/widgets/views/deess_view.gd" id="1"]
+
+[node name="DeessView" type="Control"]
+script = ExtResource("1")

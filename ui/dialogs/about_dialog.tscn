@@ -1,0 +1,41 @@
+; About and the shortcut sheet. The text itself is set in the script -- it is
+; two different documents behind one window.
+[gd_scene load_steps=2 format=3 uid="uid://cdabout"]
+
+[ext_resource type="Script" path="res://ui/dialogs/about_dialog.gd" id="1"]
+
+[node name="AboutDialog" type="Window"]
+title = "About Cadmium"
+size = Vector2i(560, 500)
+transient = true
+script = ExtResource("1")
+
+[node name="Root" type="PanelContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Dialog"
+
+[node name="Col" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Root/Col"]
+layout_mode = 2
+text = "CADMIUM"
+theme_type_variation = &"Header"
+
+[node name="Text" type="RichTextLabel" parent="Root/Col"]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+
+[node name="Buttons" type="HBoxContainer" parent="Root/Col"]
+layout_mode = 2
+alignment = 2
+
+[node name="Close" type="Button" parent="Root/Col/Buttons"]
+layout_mode = 2
+text = "Close"

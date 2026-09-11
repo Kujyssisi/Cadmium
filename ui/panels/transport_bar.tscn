@@ -1,0 +1,271 @@
+; The transport bar's layout. What each control does is wired in
+; transport_bar.gd; the icons are rasterised at run time, so they are set
+; there too rather than being baked in here.
+[gd_scene load_steps=4 format=3 uid="uid://cdtransportbar"]
+
+[ext_resource type="Script" path="res://ui/panels/transport_bar.gd" id="1"]
+[ext_resource type="Script" path="res://ui/widgets/drag_field.gd" id="2"]
+[ext_resource type="Script" path="res://ui/widgets/knob.gd" id="3"]
+
+[node name="TransportBar" type="PanelContainer"]
+theme_type_variation = &"Toolbar"
+script = ExtResource("1")
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 0
+
+[node name="Row" type="HBoxContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Transport" type="VBoxContainer" parent="Scroll/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 0
+
+[node name="Caption" type="Label" parent="Scroll/Row/Transport"]
+layout_mode = 2
+text = "TRANSPORT"
+theme_type_variation = &"SectionLabel"
+
+[node name="Row" type="HBoxContainer" parent="Scroll/Row/Transport"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Play" type="Button" parent="Scroll/Row/Transport/Row"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Play / pause  (Space)"
+
+[node name="Stop" type="Button" parent="Scroll/Row/Transport/Row"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Stop  (Enter)"
+
+[node name="Record" type="Button" parent="Scroll/Row/Transport/Row"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Record notes into the current pattern  (Ctrl+R)"
+
+[node name="Home" type="Button" parent="Scroll/Row/Transport/Row"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Back to the start  (Home)"
+
+[node name="Loop" type="Button" parent="Scroll/Row/Transport/Row"]
+custom_minimum_size = Vector2(26, 26)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+toggle_mode = true
+tooltip_text = "Loop the pattern or the playlist selection  (Ctrl+L)"
+
+[node name="Sep1" type="VSeparator" parent="Scroll/Row"]
+layout_mode = 2
+
+[node name="Clock" type="VBoxContainer" parent="Scroll/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = -2
+
+[node name="Position" type="Label" parent="Scroll/Row/Clock"]
+custom_minimum_size = Vector2(74, 0)
+layout_mode = 2
+text = "1.1.00"
+theme_type_variation = &"BigTime"
+theme_override_font_sizes/font_size = 17
+tooltip_text = "Bar.beat.tick — click to jump back to the start"
+mouse_filter = 0
+
+[node name="Time" type="Label" parent="Scroll/Row/Clock"]
+layout_mode = 2
+text = "0:00.00"
+theme_type_variation = &"MuteLabel"
+
+[node name="Sep2" type="VSeparator" parent="Scroll/Row"]
+layout_mode = 2
+
+[node name="Tempo" type="VBoxContainer" parent="Scroll/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 0
+
+[node name="Caption" type="Label" parent="Scroll/Row/Tempo"]
+layout_mode = 2
+text = "TEMPO"
+theme_type_variation = &"SectionLabel"
+
+[node name="Row" type="HBoxContainer" parent="Scroll/Row/Tempo"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Bpm" type="LineEdit" parent="Scroll/Row/Tempo/Row"]
+custom_minimum_size = Vector2(54, 22)
+layout_mode = 2
+text = "140.00"
+alignment = 1
+tooltip_text = "Tempo in beats per minute — drag up and down, or type a value"
+script = ExtResource("2")
+minimum = 20.0
+maximum = 300.0
+step = 0.5
+
+[node name="Tap" type="Button" parent="Scroll/Row/Tempo/Row"]
+custom_minimum_size = Vector2(34, 23)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+text = "TAP"
+tooltip_text = "Tap in time to set the tempo  (Ctrl+T)"
+
+[node name="Metronome" type="Button" parent="Scroll/Row/Tempo/Row"]
+custom_minimum_size = Vector2(23, 23)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+toggle_mode = true
+tooltip_text = "Metronome  (Ctrl+M)"
+
+[node name="Pattern" type="VBoxContainer" parent="Scroll/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 0
+
+[node name="Caption" type="Label" parent="Scroll/Row/Pattern"]
+layout_mode = 2
+text = "PATTERN"
+theme_type_variation = &"SectionLabel"
+
+[node name="Row" type="HBoxContainer" parent="Scroll/Row/Pattern"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Pattern" type="OptionButton" parent="Scroll/Row/Pattern/Row"]
+custom_minimum_size = Vector2(118, 22)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+clip_text = true
+
+[node name="Add" type="Button" parent="Scroll/Row/Pattern/Row"]
+custom_minimum_size = Vector2(23, 23)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "New pattern  (Ctrl+Shift+N)"
+
+[node name="Duplicate" type="Button" parent="Scroll/Row/Pattern/Row"]
+custom_minimum_size = Vector2(23, 23)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Duplicate the current pattern  (Ctrl+Shift+D)"
+
+[node name="Mode" type="Button" parent="Scroll/Row/Pattern/Row"]
+custom_minimum_size = Vector2(50, 22)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+toggle_mode = true
+text = "PAT"
+tooltip_text = "Pattern loops the selected pattern; Song plays the playlist  (L)"
+
+[node name="Edit" type="VBoxContainer" parent="Scroll/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 0
+
+[node name="Caption" type="Label" parent="Scroll/Row/Edit"]
+layout_mode = 2
+text = "SNAP / TOOL"
+theme_type_variation = &"SectionLabel"
+
+[node name="Row" type="HBoxContainer" parent="Scroll/Row/Edit"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Snap" type="OptionButton" parent="Scroll/Row/Edit/Row"]
+custom_minimum_size = Vector2(64, 22)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+
+[node name="Draw" type="Button" parent="Scroll/Row/Edit/Row"]
+custom_minimum_size = Vector2(23, 23)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+toggle_mode = true
+tooltip_text = "Draw  (1 / B)"
+
+[node name="Select" type="Button" parent="Scroll/Row/Edit/Row"]
+custom_minimum_size = Vector2(23, 23)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+toggle_mode = true
+tooltip_text = "Select  (2)"
+
+[node name="Slice" type="Button" parent="Scroll/Row/Edit/Row"]
+custom_minimum_size = Vector2(23, 23)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+toggle_mode = true
+tooltip_text = "Slice notes and clips  (3 / C)"
+
+[node name="Mute" type="Button" parent="Scroll/Row/Edit/Row"]
+custom_minimum_size = Vector2(23, 23)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+toggle_mode = true
+tooltip_text = "Mute  (4 / M)"
+
+[node name="Sep3" type="VSeparator" parent="Scroll/Row"]
+layout_mode = 2
+
+[node name="Tweak" type="VBoxContainer" parent="Scroll/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 0
+
+[node name="Caption" type="Label" parent="Scroll/Row/Tweak"]
+layout_mode = 2
+text = "LAST TWEAKED"
+theme_type_variation = &"SectionLabel"
+
+[node name="Row" type="HBoxContainer" parent="Scroll/Row/Tweak"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Knob" type="Control" parent="Scroll/Row/Tweak/Row"]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+size_flags_vertical = 4
+script = ExtResource("3")
+
+[node name="Name" type="Label" parent="Scroll/Row/Tweak/Row"]
+custom_minimum_size = Vector2(104, 0)
+layout_mode = 2
+size_flags_vertical = 4
+clip_text = true
+text = "nothing yet"
+theme_type_variation = &"MuteLabel"
+
+[node name="Spacer" type="Control" parent="Scroll/Row"]
+custom_minimum_size = Vector2(4, 0)
+layout_mode = 2
+size_flags_horizontal = 3

@@ -1,0 +1,51 @@
+{
+ "flare": 1,
+ "name": "Percussive Organ",
+ "author": "FluidR3 (Frank Wen, MIT)",
+ "type": "Organ",
+ "style": "Warm,Long",
+ "pack": "GM Instruments",
+ "macros": [
+  "Tone",
+  "Attack",
+  "Room",
+  "",
+  "",
+  "",
+  "",
+  ""
+ ],
+ "params": {
+  "master.vol": 1.5435667037963867,
+  "osca.src": 2,
+  "filter1.type": 0,
+  "filter1.cutoff": 8000,
+  "filter1.reso": 0.05000000074505806,
+  "filter1.keytrack": 0.15000000596046448,
+  "env1.attack": 4,
+  "env1.decay": 1,
+  "mod1.src": 8,
+  "mod1.dst": 25,
+  "mod1.amount": 0.30000001192092896,
+  "mod2.src": 18,
+  "mod2.dst": 25,
+  "mod2.amount": 0.550000011920929,
+  "mod3.src": 19,
+  "mod3.dst": 42,
+  "mod3.amount": 0.6000000238418579,
+  "mod4.src": 20,
+  "mod4.dst": 48,
+  "mod4.amount": 0.5,
+  "macro3": 0.23999999463558197,
+  "fx.chorus.on": 1,
+  "fx.chorus.rate": 0.4000000059604645,
+  "fx.chorus.mix": 0.14000000059604645,
+  "fx.reverb.on": 1,
+  "fx.reverb.size": 0.6700000166893005,
+  "fx.reverb.mix": 0.23999999463558197,
+  "fx.limit.ceiling": -0.5
+ },
+ "content": {
+  "osca.sample": "FluidR3_GM.sf2|109"
+ }
+}

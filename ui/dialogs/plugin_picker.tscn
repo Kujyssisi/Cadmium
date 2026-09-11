@@ -1,0 +1,63 @@
+; Choosing an effect or an instrument. The lists are filled from whatever is
+; installed, so they are populated in plugin_picker.gd.
+[gd_scene load_steps=2 format=3 uid="uid://cdpluginpicker"]
+
+[ext_resource type="Script" path="res://ui/dialogs/plugin_picker.gd" id="1"]
+
+[node name="PluginPicker" type="Window"]
+title = "Add Effect"
+size = Vector2i(700, 520)
+transient = true
+script = ExtResource("1")
+
+[node name="Root" type="PanelContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Dialog"
+
+[node name="Col" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Search" type="LineEdit" parent="Root/Col"]
+layout_mode = 2
+placeholder_text = "Search..."
+clear_button_enabled = true
+
+[node name="Split" type="HBoxContainer" parent="Root/Col"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="Categories" type="ItemList" parent="Root/Col/Split"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 0
+
+[node name="List" type="ItemList" parent="Root/Col/Split"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+allow_search = false
+
+[node name="Detail" type="Label" parent="Root/Col"]
+layout_mode = 2
+text = "Double-click to add, or press Enter.  Right-click for favourites."
+clip_text = true
+theme_type_variation = &"MuteLabel"
+
+[node name="Buttons" type="HBoxContainer" parent="Root/Col"]
+layout_mode = 2
+alignment = 2
+
+[node name="Cancel" type="Button" parent="Root/Col/Buttons"]
+layout_mode = 2
+text = "Cancel"
+
+[node name="Add" type="Button" parent="Root/Col/Buttons"]
+layout_mode = 2
+text = "Add"

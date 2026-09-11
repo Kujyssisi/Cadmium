@@ -1,0 +1,42 @@
+{
+ "flare": 1,
+ "name": "Tuned 808",
+ "author": "FLARE",
+ "type": "Bass",
+ "style": "Dark,Soft,Long",
+ "pack": "Factory",
+ "macros": [
+  "Drive",
+  "Decay",
+  "",
+  "",
+  "",
+  "",
+  "",
+  ""
+ ],
+ "params": {
+  "master.vol": -0.40299415588378906,
+  "master.mode": 1,
+  "osca.wave": 0,
+  "env1.attack": 1,
+  "env1.decay": 6000,
+  "env1.sustain": 0,
+  "env1.release": 400,
+  "env2.attack": 0.5,
+  "env2.decay": 55,
+  "env2.sustain": 0,
+  "env2.release": 40,
+  "mod1.src": 2,
+  "mod1.dst": 1,
+  "mod1.amount": 0.10999999940395355,
+  "mod1.curve": -0.699999988079071,
+  "mod2.src": 18,
+  "mod2.dst": 44,
+  "mod2.amount": 0.6000000238418579,
+  "macro1": 0.20000000298023224,
+  "fx.dist.on": 1,
+  "fx.dist.mix": 0.44999998807907104,
+  "fx.limit.ceiling": -1
+ }
+}

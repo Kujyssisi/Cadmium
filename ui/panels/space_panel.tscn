@@ -1,0 +1,36 @@
+; The convolution reverb: which impulse is loaded, and the tail that impulse
+; makes. Dropping a wav on the panel loads it.
+[gd_scene load_steps=3 format=3 uid="uid://cdspacepanel"]
+
+[ext_resource type="Script" path="res://ui/panels/space_panel.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/widgets/views/verb_view.tscn" id="2"]
+
+[node name="SpacePanel" type="PanelContainer"]
+theme_type_variation = &"Card"
+script = ExtResource("1")
+
+[node name="Col" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Col"]
+layout_mode = 2
+
+[node name="Name" type="Label" parent="Col/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"MuteLabel"
+text = "built-in plate - drop a wav here to use your own"
+clip_text = true
+
+[node name="Load" type="Button" parent="Col/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Load Impulse..."
+
+[node name="Clear" type="Button" parent="Col/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Reset"
+
+[node name="View" parent="Col" instance=ExtResource("2")]
+layout_mode = 2

@@ -1,0 +1,49 @@
+{
+ "flare": 1,
+ "name": "Standard",
+ "author": "FluidR3 (Frank Wen, MIT)",
+ "type": "Percussion",
+ "style": "Short,Hard",
+ "pack": "GM Instruments",
+ "macros": [
+  "Tone",
+  "Attack",
+  "Room",
+  "",
+  "",
+  "",
+  "",
+  ""
+ ],
+ "params": {
+  "master.vol": 3.9174022674560547,
+  "osca.src": 2,
+  "filter1.type": 0,
+  "filter1.cutoff": 11000,
+  "filter1.reso": 0.05000000074505806,
+  "filter1.keytrack": 0.15000000596046448,
+  "env1.attack": 0.5,
+  "env1.decay": 1,
+  "env1.release": 180,
+  "mod1.src": 8,
+  "mod1.dst": 25,
+  "mod1.amount": 0.30000001192092896,
+  "mod2.src": 18,
+  "mod2.dst": 25,
+  "mod2.amount": 0.550000011920929,
+  "mod3.src": 19,
+  "mod3.dst": 42,
+  "mod3.amount": 0.6000000238418579,
+  "mod4.src": 20,
+  "mod4.dst": 48,
+  "mod4.amount": 0.5,
+  "macro3": 0.18000000715255737,
+  "fx.reverb.on": 1,
+  "fx.reverb.size": 0.6399999856948853,
+  "fx.reverb.mix": 0.18000000715255737,
+  "fx.limit.ceiling": -0.5
+ },
+ "content": {
+  "osca.sample": "FluidR3_GM.sf2|118"
+ }
+}

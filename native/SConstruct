@@ -1,0 +1,22 @@
+#!/usr/bin/env python
+# Cadmium audio engine — GDExtension build.
+#   scons platform=linux target=template_release custom_api_file=$PWD/extension_api.json -j16
+import os
+
+env = SConscript("godot-cpp/SConstruct")
+env.Append(CPPPATH=["src/", "vendor/vst3/"])
+env.Append(CXXFLAGS=["-std=c++17", "-ffast-math"])
+if env["platform"] == "windows":
+    env.Append(LIBS=["winmm", "ole32", "user32", "gdi32", "advapi32"])
+else:
+    env.Append(LIBS=["dl", "pthread", "asound", "X11"])
+# FLARE lives in a subfolder of its own: it is a whole synthesiser with its
+# own readers and its own parameter table, and mixing three dozen of its
+# files in with Cadmium's would make neither half readable.
+sources = Glob("src/*.cpp") + Glob("src/flare/*.cpp")
+
+lib = env.SharedLibrary(
+    "bin/libcadmium{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+    source=sources,
+)
+Default(lib)

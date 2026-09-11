@@ -1,0 +1,38 @@
+; One channel this one can also play. The layers dialog instances one per other
+; channel in the project.
+[gd_scene load_steps=2 format=3 uid="uid://cdlayerrow"]
+
+[ext_resource type="Script" path="res://ui/dialogs/layer_row.gd" id="1"]
+
+[node name="LayerRow" type="HBoxContainer"]
+custom_minimum_size = Vector2(0, 26)
+theme_override_constants/separation = 4
+script = ExtResource("1")
+
+[node name="Check" type="CheckBox" parent="."]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+focus_mode = 0
+
+[node name="Transpose" type="SpinBox" parent="."]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+min_value = -48.0
+max_value = 48.0
+suffix = "st"
+tooltip_text = "Shift this layer in semitones — +12 is an octave up"
+
+[node name="Level" type="HSlider" parent="."]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.01
+value = 1.0
+tooltip_text = "How hard this layer is played, relative to the note"
+
+[node name="Readout" type="Label" parent="."]
+custom_minimum_size = Vector2(42, 0)
+layout_mode = 2
+text = "100%"
+theme_type_variation = &"MuteLabel"

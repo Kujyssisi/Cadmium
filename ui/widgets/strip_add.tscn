@@ -1,0 +1,26 @@
+; The end of the mixer's strip row: one more track, or one fewer. Sits where
+; the next strip would go, so adding one reads as extending the row.
+[gd_scene format=3 uid="uid://cdstripadd"]
+
+[node name="StripAdd" type="VBoxContainer"]
+custom_minimum_size = Vector2(24, 0)
+size_flags_vertical = 3
+theme_override_constants/separation = 2
+
+[node name="Add" type="Button" parent="."]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+focus_mode = 0
+text = "+"
+tooltip_text = "Another mixer track"
+
+[node name="Remove" type="Button" parent="."]
+custom_minimum_size = Vector2(0, 26)
+layout_mode = 2
+focus_mode = 0
+text = "-"
+tooltip_text = "Take the last mixer track away, if nothing is using it"
+
+[node name="Fill" type="Control" parent="."]
+layout_mode = 2
+size_flags_vertical = 3

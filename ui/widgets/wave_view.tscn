@@ -1,0 +1,7 @@
+; The sampler waveform, as a scene so the sampler panel loads it.
+[gd_scene load_steps=2 format=3 uid="uid://cdviewwave"]
+
+[ext_resource type="Script" path="res://ui/widgets/wave_view.gd" id="1"]
+
+[node name="WaveView" type="Control"]
+script = ExtResource("1")

@@ -1,0 +1,44 @@
+; One of a strip's four sends. The mixer instances four per strip.
+[gd_scene load_steps=4 format=3 uid="uid://cdsendrow"]
+
+[ext_resource type="Script" path="res://ui/panels/send_row.gd" id="1"]
+[ext_resource type="Script" path="res://ui/widgets/knob.gd" id="2"]
+[ext_resource type="Script" path="res://ui/widgets/led.gd" id="3"]
+
+[node name="SendRow" type="HBoxContainer"]
+custom_minimum_size = Vector2(0, 22)
+theme_override_constants/separation = 2
+script = ExtResource("1")
+
+[node name="Number" type="Label" parent="."]
+custom_minimum_size = Vector2(12, 0)
+layout_mode = 2
+horizontal_alignment = 2
+theme_type_variation = &"MuteLabel"
+
+[node name="Dest" type="OptionButton" parent="."]
+custom_minimum_size = Vector2(104, 20)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+focus_mode = 0
+clip_text = true
+
+[node name="Amount" type="Control" parent="."]
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+script = ExtResource("2")
+label = "Send"
+minimum = 0.0
+maximum = 1.0
+default_value = 0.0
+kind = 3
+show_label = false
+knob_size = 20.0
+
+[node name="Sidechain" type="Control" parent="."]
+custom_minimum_size = Vector2(14, 14)
+layout_mode = 2
+tooltip_text = "Feed the destination's sidechain input instead of its audio"
+script = ExtResource("3")
+letter = "S"

@@ -1,0 +1,77 @@
+; One mixer strip. The mixer instances one of these per track; which track it
+; is is set on it after it is made.
+[gd_scene load_steps=5 format=3 uid="uid://cdmixerstrip"]
+
+[ext_resource type="Script" path="res://ui/widgets/mixer_strip.gd" id="1"]
+[ext_resource type="Script" path="res://ui/widgets/knob.gd" id="2"]
+[ext_resource type="Script" path="res://ui/widgets/fader.gd" id="3"]
+[ext_resource type="Script" path="res://ui/widgets/meter.gd" id="4"]
+[ext_resource type="Script" path="res://ui/widgets/led.gd" id="5"]
+
+[node name="MixerStrip" type="PanelContainer"]
+size_flags_vertical = 3
+theme_type_variation = &"Card"
+script = ExtResource("1")
+
+[node name="Col" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Name" type="Button" parent="Col"]
+custom_minimum_size = Vector2(0, 19)
+layout_mode = 2
+focus_mode = 0
+clip_text = true
+tooltip_text = "Click to select, double-click to rename"
+
+[node name="Pan" type="Control" parent="Col"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+script = ExtResource("2")
+label = "Pan"
+minimum = -1.0
+maximum = 1.0
+default_value = 0.0
+show_label = false
+knob_size = 22.0
+
+[node name="Mid" type="HBoxContainer" parent="Col"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 2
+
+[node name="Fader" type="Control" parent="Col/Mid"]
+custom_minimum_size = Vector2(22, 44)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("3")
+
+[node name="Meter" type="Control" parent="Col/Mid"]
+custom_minimum_size = Vector2(14, 44)
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("4")
+
+[node name="Leds" type="HBoxContainer" parent="Col"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 3
+
+[node name="Mute" type="Control" parent="Col/Leds"]
+custom_minimum_size = Vector2(18, 14)
+layout_mode = 2
+tooltip_text = "Mute"
+script = ExtResource("5")
+letter = "M"
+
+[node name="Solo" type="Control" parent="Col/Leds"]
+custom_minimum_size = Vector2(18, 14)
+layout_mode = 2
+tooltip_text = "Solo"
+script = ExtResource("5")
+letter = "S"
+
+[node name="Fx" type="Label" parent="Col"]
+layout_mode = 2
+horizontal_alignment = 1
+theme_type_variation = &"MuteLabel"

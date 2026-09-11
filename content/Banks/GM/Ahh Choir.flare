@@ -1,0 +1,52 @@
+{
+ "flare": 1,
+ "name": "Ahh Choir",
+ "author": "FluidR3 (Frank Wen, MIT)",
+ "type": "String",
+ "style": "Soft,Long,Wide",
+ "pack": "GM Instruments",
+ "macros": [
+  "Tone",
+  "Attack",
+  "Room",
+  "",
+  "",
+  "",
+  "",
+  ""
+ ],
+ "params": {
+  "master.vol": 12,
+  "osca.src": 2,
+  "filter1.type": 0,
+  "filter1.cutoff": 7000,
+  "filter1.reso": 0.05000000074505806,
+  "filter1.keytrack": 0.15000000596046448,
+  "env1.attack": 80,
+  "env1.decay": 1,
+  "env1.release": 520,
+  "mod1.src": 8,
+  "mod1.dst": 25,
+  "mod1.amount": 0.30000001192092896,
+  "mod2.src": 18,
+  "mod2.dst": 25,
+  "mod2.amount": 0.550000011920929,
+  "mod3.src": 19,
+  "mod3.dst": 42,
+  "mod3.amount": 0.6000000238418579,
+  "mod4.src": 20,
+  "mod4.dst": 48,
+  "mod4.amount": 0.5,
+  "macro3": 0.3799999952316284,
+  "fx.chorus.on": 1,
+  "fx.chorus.rate": 0.4000000059604645,
+  "fx.chorus.mix": 0.20000000298023224,
+  "fx.reverb.on": 1,
+  "fx.reverb.size": 0.7400000095367432,
+  "fx.reverb.mix": 0.3799999952316284,
+  "fx.limit.ceiling": -0.5
+ },
+ "content": {
+  "osca.sample": "FluidR3_GM.sf2|137"
+ }
+}

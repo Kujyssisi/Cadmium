@@ -1,0 +1,104 @@
+; The mixer's frame: the effect rack on the left, the strips on the right. The
+; strips and the rack rows are per-track, so they are made in mixer.gd from
+; mixer_strip.tscn and fx_slot.tscn.
+[gd_scene load_steps=2 format=3 uid="uid://cdmixer"]
+
+[ext_resource type="Script" path="res://ui/panels/mixer.gd" id="1"]
+
+[node name="Mixer" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Dock"
+script = ExtResource("1")
+
+[node name="Row" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 2
+
+[node name="Rack" type="PanelContainer" parent="Row"]
+custom_minimum_size = Vector2(238, 0)
+layout_mode = 2
+theme_type_variation = &"DarkPanel"
+
+[node name="Col" type="VBoxContainer" parent="Row/Rack"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Caption" type="PanelContainer" parent="Row/Rack/Col"]
+layout_mode = 2
+theme_type_variation = &"CaptionBar"
+
+[node name="Title" type="Label" parent="Row/Rack/Col/Caption"]
+layout_mode = 2
+text = "INSERT 1"
+theme_type_variation = &"Caption"
+
+[node name="Scroll" type="ScrollContainer" parent="Row/Rack/Col"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Pad" type="MarginContainer" parent="Row/Rack/Col/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_override_constants/margin_right = 6
+
+[node name="Inner" type="VBoxContainer" parent="Row/Rack/Col/Scroll/Pad"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 2
+
+[node name="EffectsCaption" type="Label" parent="Row/Rack/Col/Scroll/Pad/Inner"]
+layout_mode = 2
+text = "EFFECTS"
+theme_type_variation = &"SectionLabel"
+
+[node name="Effects" type="VBoxContainer" parent="Row/Rack/Col/Scroll/Pad/Inner"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
+
+[node name="SendsCaption" type="Label" parent="Row/Rack/Col/Scroll/Pad/Inner"]
+layout_mode = 2
+text = "SENDS"
+theme_type_variation = &"SectionLabel"
+
+[node name="Sends" type="VBoxContainer" parent="Row/Rack/Col/Scroll/Pad/Inner"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
+
+[node name="StripScroll" type="ScrollContainer" parent="Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
+
+[node name="Col" type="VBoxContainer" parent="Row/StripScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 0
+
+[node name="Strips" type="HBoxContainer" parent="Row/StripScroll/Col"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 1
+
+[node name="Routing" type="Control" parent="Row/StripScroll/Col"]
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+mouse_filter = 0
+tooltip_text = "Where the selected strip's audio goes. Click a socket to route into that strip, click it again to stop."

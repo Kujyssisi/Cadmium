@@ -1,0 +1,57 @@
+Cadmium
+Copyright (c) 2026 cfinite. All rights reserved.
+
+-------------------------------------------------------------------------------
+READ THIS FIRST — this is a placeholder you are meant to choose, not a decision
+that has been made for you.
+
+"All rights reserved" is the default here because it is the only one that can be
+taken back. You can relicense your own work as MIT, GPL or anything else at any
+time; you cannot un-MIT something once a copy is out in the world. So this
+starts closed, and opening it is a one-line change when you have decided.
+
+Every third-party component Cadmium uses is permissive (MIT, Apache-2.0, OFL) —
+see THIRD-PARTY-NOTICES.md — so none of them force a choice on you. Selling
+Cadmium, giving it away, or opening the source are all allowed by all of them.
+
+To open it instead, replace everything in this file from "Terms" down with the
+text of the licence you want, and say so in README.md. The usual candidates:
+
+  MIT          — anyone may do anything, including sell a closed fork.
+  GPL-3.0      — anyone may do anything, but a distributed fork must also be
+                 GPL-3.0 with source. Note that this would NOT stop someone
+                 hosting it as a service.
+  AGPL-3.0     — as GPL-3.0, and network use counts as distribution.
+  Business Source / "source available" — source published, commercial use
+                 restricted for N years, then converts to an open licence.
+
+Whatever you pick, keep THIRD-PARTY-NOTICES.md shipping alongside it: those
+obligations are separate from this file and do not go away.
+-------------------------------------------------------------------------------
+
+Terms
+
+1. Definitions. "The Software" means the Cadmium application, its source code,
+   its build scripts and its documentation, excluding the third-party components
+   listed in THIRD-PARTY-NOTICES.md, which are licensed by their own authors on
+   their own terms.
+
+2. Grant. No licence to use, copy, modify or distribute the Software is granted
+   except by a separate written agreement with the copyright holder, or by the
+   terms accompanying an official release.
+
+3. Third-party components. Nothing in this file restricts any right you have in
+   a third-party component under that component's own licence. Those licences
+   are reproduced in THIRD-PARTY-NOTICES.md and in the files it points to.
+
+4. Trademarks. This licence grants no rights in the name "Cadmium", the Cadmium
+   logo, or any other trade mark of the copyright holder.
+
+5. No warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+6. No liability. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM,
+   DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+   OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE
+   OR OTHER DEALINGS IN THE SOFTWARE.

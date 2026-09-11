@@ -1,0 +1,8 @@
+; CdCompView, as a scene so the plugin panel loads it rather than building it.
+[gd_scene load_steps=2 format=3 uid="uid://cdviewcompview"]
+
+[ext_resource type="Script" path="res://ui/widgets/comp_view.gd" id="1"]
+
+[node name="CompView" type="Control"]
+custom_minimum_size = Vector2(0, 130)
+script = ExtResource("1")

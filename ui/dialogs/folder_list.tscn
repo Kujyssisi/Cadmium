@@ -1,0 +1,40 @@
+; One "folders to search" card. Three of these make up the Folders page; which
+; setting each one edits is set by whoever instances it.
+[gd_scene load_steps=2 format=3 uid="uid://cdfolderlist"]
+
+[ext_resource type="Script" path="res://ui/dialogs/folder_list.gd" id="1"]
+
+[node name="FolderList" type="PanelContainer"]
+theme_type_variation = &"Card"
+script = ExtResource("1")
+
+[node name="Col" type="VBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="Head" type="Label" parent="Col"]
+layout_mode = 2
+text = "FOLDERS"
+theme_type_variation = &"SectionLabel"
+
+[node name="List" type="ItemList" parent="Col"]
+custom_minimum_size = Vector2(0, 74)
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Col"]
+layout_mode = 2
+
+[node name="Add" type="Button" parent="Col/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Add Folder..."
+
+[node name="Remove" type="Button" parent="Col/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Remove"
+
+[node name="Hint" type="Label" parent="Col"]
+layout_mode = 2
+text = ""
+autowrap_mode = 3
+theme_type_variation = &"MuteLabel"

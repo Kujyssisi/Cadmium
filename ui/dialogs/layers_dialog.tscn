@@ -1,0 +1,74 @@
+; Stacking instruments. One row per other channel, so the rows themselves are
+; made in layers_dialog.gd -- how many there are is the project's business.
+[gd_scene load_steps=2 format=3 uid="uid://cdlayers"]
+
+[ext_resource type="Script" path="res://ui/dialogs/layers_dialog.gd" id="1"]
+
+[node name="LayersDialog" type="Window"]
+title = "Layers"
+size = Vector2i(660, 470)
+transient = true
+script = ExtResource("1")
+
+[node name="Root" type="PanelContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Dialog"
+
+[node name="Col" type="VBoxContainer" parent="Root"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Intro" type="Label" parent="Root/Col"]
+layout_mode = 2
+autowrap_mode = 3
+theme_type_variation = &"MuteLabel"
+
+[node name="SelfCheck" type="CheckBox" parent="Root/Col"]
+layout_mode = 2
+focus_mode = 0
+text = "Silence this channel's own instrument (pure layer channel)"
+
+[node name="Head" type="HBoxContainer" parent="Root/Col"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Channel" type="Label" parent="Root/Col/Head"]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+text = "Channel"
+theme_type_variation = &"SectionLabel"
+
+[node name="Transpose" type="Label" parent="Root/Col/Head"]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+text = "Transpose"
+theme_type_variation = &"SectionLabel"
+
+[node name="Level" type="Label" parent="Root/Col/Head"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+text = "Level"
+theme_type_variation = &"SectionLabel"
+
+[node name="Scroll" type="ScrollContainer" parent="Root/Col"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="List" type="VBoxContainer" parent="Root/Col/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_override_constants/separation = 1
+
+[node name="Buttons" type="HBoxContainer" parent="Root/Col"]
+layout_mode = 2
+alignment = 2
+
+[node name="Done" type="Button" parent="Root/Col/Buttons"]
+layout_mode = 2
+text = "Done"

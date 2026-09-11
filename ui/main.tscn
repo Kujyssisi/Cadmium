@@ -1,0 +1,248 @@
+; The window's layout, so that what the interface *is* lives here and what it
+; *does* lives in main.gd. Panels that draw themselves on a canvas (the piano
+; roll, the playlist) are still their own scripts -- there is nothing to put in
+; a scene for a control that is one _draw call.
+[gd_scene load_steps=12 format=3 uid="uid://cdmainwindow"]
+
+[ext_resource type="Script" path="res://ui/main.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/panels/transport_bar.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://ui/panels/browser.tscn" id="3"]
+[ext_resource type="Script" path="res://ui/panels/playlist.gd" id="4"]
+[ext_resource type="Script" path="res://ui/panels/piano_roll.gd" id="5"]
+[ext_resource type="PackedScene" path="res://ui/panels/mixer.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://ui/panels/channel_rack.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://ui/panels/visualiser.tscn" id="8"]
+[ext_resource type="Script" path="res://ui/widgets/knob.gd" id="9"]
+[ext_resource type="Script" path="res://ui/widgets/meter.gd" id="10"]
+[ext_resource type="PackedScene" uid="uid://cdpickerpanel" path="res://ui/panels/picker_panel.tscn" id="22"]
+
+[node name="Root" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Frame" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 4
+
+[node name="Root" type="VBoxContainer" parent="Frame"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="MenuBar" type="PanelContainer" parent="Frame/Root"]
+layout_mode = 2
+theme_type_variation = &"CaptionBar"
+
+[node name="Row" type="HBoxContainer" parent="Frame/Root/MenuBar"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Brand" type="Label" parent="Frame/Root/MenuBar/Row"]
+layout_mode = 2
+text = "  CADMIUM  "
+theme_type_variation = &"Header"
+
+[node name="File" type="MenuButton" parent="Frame/Root/MenuBar/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "File"
+flat = true
+
+[node name="Edit" type="MenuButton" parent="Frame/Root/MenuBar/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Edit"
+flat = true
+
+[node name="View" type="MenuButton" parent="Frame/Root/MenuBar/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "View"
+flat = true
+
+[node name="Tools" type="MenuButton" parent="Frame/Root/MenuBar/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Tools"
+flat = true
+
+[node name="Help" type="MenuButton" parent="Frame/Root/MenuBar/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Help"
+flat = true
+
+[node name="Gap" type="Control" parent="Frame/Root/MenuBar/Row"]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+
+[node name="History" type="HBoxContainer" parent="Frame/Root/MenuBar/Row"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 2
+
+[node name="Undo" type="Button" parent="Frame/Root/MenuBar/Row/History"]
+custom_minimum_size = Vector2(23, 23)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Undo  (Ctrl+Z)"
+
+[node name="Redo" type="Button" parent="Frame/Root/MenuBar/Row/History"]
+custom_minimum_size = Vector2(23, 23)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+tooltip_text = "Redo  (Ctrl+Shift+Z)"
+
+[node name="Spacer" type="Control" parent="Frame/Root/MenuBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TransportBar" parent="Frame/Root" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="Split" type="HSplitContainer" parent="Frame/Root"]
+layout_mode = 2
+size_flags_vertical = 3
+split_offset = 236
+
+[node name="Browser" parent="Frame/Root/Split" instance=ExtResource("3")]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 0)
+
+[node name="Right" type="VSplitContainer" parent="Frame/Root/Split"]
+layout_mode = 2
+size_flags_horizontal = 3
+split_offset = 300
+
+[node name="Tabs" type="TabContainer" parent="Frame/Root/Split/Right"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 220)
+size_flags_vertical = 3
+
+[node name="Playlist" type="HSplitContainer" parent="Frame/Root/Split/Right/Tabs"]
+layout_mode = 2
+split_offset = 132
+
+[node name="Picker" parent="Frame/Root/Split/Right/Tabs/Playlist" instance=ExtResource("22")]
+layout_mode = 2
+
+[node name="Arrangement" type="Control" parent="Frame/Root/Split/Right/Tabs/Playlist"]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("4")
+
+[node name="Piano Roll" type="Control" parent="Frame/Root/Split/Right/Tabs"]
+visible = false
+layout_mode = 2
+script = ExtResource("5")
+
+[node name="Menu" type="MenuButton" parent="Frame/Root/Split/Right/Tabs/Piano Roll"]
+custom_minimum_size = Vector2(96, 20)
+offset_left = 6.0
+offset_top = 2.0
+offset_right = 102.0
+offset_bottom = 22.0
+focus_mode = 0
+tooltip_text = "Scores, MIDI, and everything the piano roll can do to what is in it"
+text = "Piano roll"
+
+[node name="Channel" type="OptionButton" parent="Frame/Root/Split/Right/Tabs/Piano Roll"]
+custom_minimum_size = Vector2(190, 20)
+offset_left = 62.0
+offset_top = 2.0
+offset_right = 252.0
+offset_bottom = 22.0
+focus_mode = 0
+clip_text = true
+tooltip_text = "What the piano roll is editing: any instrument in the rack, or any sample in the song"
+
+[node name="Mixer" parent="Frame/Root/Split/Right/Tabs" instance=ExtResource("6")]
+visible = false
+layout_mode = 2
+
+[node name="Scope" parent="Frame/Root/Split/Right/Tabs" instance=ExtResource("8")]
+visible = false
+layout_mode = 2
+
+[node name="ChannelRack" parent="Frame/Root/Split/Right" instance=ExtResource("7")]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 160)
+
+[node name="StatusBar" type="PanelContainer" parent="Frame/Root"]
+layout_mode = 2
+theme_type_variation = &"StatusBar"
+
+[node name="Row" type="HBoxContainer" parent="Frame/Root/StatusBar"]
+layout_mode = 2
+
+[node name="Status" type="Label" parent="Frame/Root/StatusBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Ready"
+theme_type_variation = &"MuteLabel"
+
+[node name="Readouts" type="HBoxContainer" parent="Frame/Root/StatusBar/Row"]
+layout_mode = 2
+alignment = 2
+theme_override_constants/separation = 6
+
+[node name="Voices" type="Label" parent="Frame/Root/StatusBar/Row/Readouts"]
+layout_mode = 2
+text = "0 voices"
+horizontal_alignment = 2
+theme_type_variation = &"MuteLabel"
+tooltip_text = "Notes sounding right now"
+
+[node name="Cpu" type="Label" parent="Frame/Root/StatusBar/Row/Readouts"]
+custom_minimum_size = Vector2(62, 0)
+layout_mode = 2
+text = "CPU 0%"
+horizontal_alignment = 2
+theme_type_variation = &"MuteLabel"
+tooltip_text = "How much of the audio deadline the engine is using"
+
+[node name="MasterLabel" type="Label" parent="Frame/Root/StatusBar/Row/Readouts"]
+layout_mode = 2
+size_flags_vertical = 4
+text = "MASTER"
+theme_type_variation = &"SectionLabel"
+
+[node name="MasterKnob" type="Control" parent="Frame/Root/StatusBar/Row/Readouts"]
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+tooltip_text = "Master volume"
+script = ExtResource("9")
+label = "Master"
+minimum = 0.0
+maximum = 1.25
+default_value = 0.85
+kind = 3
+show_label = false
+knob_size = 18.0
+
+[node name="MasterMeter" type="Control" parent="Frame/Root/StatusBar/Row/Readouts"]
+custom_minimum_size = Vector2(110, 12)
+layout_mode = 2
+size_flags_vertical = 4
+tooltip_text = "Master output"
+script = ExtResource("10")
+track = 0
+horizontal = true
+
+[node name="Pad" type="Control" parent="Frame/Root/StatusBar/Row/Readouts"]
+custom_minimum_size = Vector2(6, 0)
+layout_mode = 2

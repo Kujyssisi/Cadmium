@@ -1,0 +1,17 @@
+[configuration]
+
+entry_symbol = "cadmium_library_init"
+compatibility_minimum = "4.4"
+reloadable = false
+
+[libraries]
+
+linux.editor.x86_64 = "res://native/bin/libcadmium.linux.template_release.x86_64.so"
+linux.template_debug.x86_64 = "res://native/bin/libcadmium.linux.template_release.x86_64.so"
+linux.template_release.x86_64 = "res://native/bin/libcadmium.linux.template_release.x86_64.so"
+linux.editor.arm64 = "res://native/bin/libcadmium.linux.template_release.arm64.so"
+linux.template_debug.arm64 = "res://native/bin/libcadmium.linux.template_release.arm64.so"
+linux.template_release.arm64 = "res://native/bin/libcadmium.linux.template_release.arm64.so"
+windows.editor.x86_64 = "res://native/bin/libcadmium.windows.template_release.x86_64.dll"
+windows.template_debug.x86_64 = "res://native/bin/libcadmium.windows.template_release.x86_64.dll"
+windows.template_release.x86_64 = "res://native/bin/libcadmium.windows.template_release.x86_64.dll"

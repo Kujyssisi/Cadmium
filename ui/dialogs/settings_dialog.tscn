@@ -1,0 +1,248 @@
+; Preferences. Every row is here; what goes *in* the drop-downs is filled by
+; settings_dialog.gd, because the choices come from the machine -- the audio
+; devices it has, the scale its desktop reports.
+[gd_scene load_steps=3 format=3 uid="uid://cdsettings"]
+
+[ext_resource type="Script" path="res://ui/dialogs/settings_dialog.gd" id="1"]
+[ext_resource type="PackedScene" path="res://ui/dialogs/folder_list.tscn" id="2"]
+
+[node name="SettingsDialog" type="Window"]
+title = "Preferences"
+size = Vector2i(620, 480)
+transient = true
+script = ExtResource("1")
+
+[node name="Root" type="PanelContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Dialog"
+
+[node name="Tabs" type="TabContainer" parent="Root"]
+layout_mode = 2
+theme_type_variation = &"DialogTabs"
+
+[node name="General" type="VBoxContainer" parent="Root/Tabs"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ScaleRow" type="HBoxContainer" parent="Root/Tabs/General"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Root/Tabs/General/ScaleRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Interface scale"
+
+[node name="Scale" type="OptionButton" parent="Root/Tabs/General/ScaleRow"]
+layout_mode = 2
+focus_mode = 0
+
+[node name="AutosaveRow" type="HBoxContainer" parent="Root/Tabs/General"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Root/Tabs/General/AutosaveRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Autosave"
+
+[node name="Autosave" type="OptionButton" parent="Root/Tabs/General/AutosaveRow"]
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Writes a copy beside the project as <name>.autosave.cadmium, leaving what you saved alone. A project you have not saved yet goes to Cadmium's own folder."
+
+[node name="FpsRow" type="HBoxContainer" parent="Root/Tabs/General"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Root/Tabs/General/FpsRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Frame rate limit"
+
+[node name="Fps" type="OptionButton" parent="Root/Tabs/General/FpsRow"]
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "How often the interface redraws. Everything above about a hundred is work taken away from the audio thread and from plugin interfaces."
+
+[node name="Midi" type="CheckBox" parent="Root/Tabs/General"]
+layout_mode = 2
+focus_mode = 0
+text = "Listen to MIDI input devices"
+
+[node name="Follow" type="CheckBox" parent="Root/Tabs/General"]
+layout_mode = 2
+focus_mode = 0
+text = "Follow the playhead while playing"
+
+[node name="LimiterRow" type="HBoxContainer" parent="Root/Tabs/General"]
+layout_mode = 2
+
+[node name="Limiter" type="CheckBox" parent="Root/Tabs/General/LimiterRow"]
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+focus_mode = 0
+text = "Keep the master under a ceiling"
+tooltip_text = "A limiter on the master output. It does nothing until something asks for more than the ceiling, and then it holds it there -- a runaway feedback loop or a synth with its gain wound up cannot reach the speakers at full scale."
+
+[node name="Ceiling" type="OptionButton" parent="Root/Tabs/General/LimiterRow"]
+layout_mode = 2
+focus_mode = 0
+
+[node name="ByPosition" type="CheckBox" parent="Root/Tabs/General"]
+layout_mode = 2
+focus_mode = 0
+text = "Play notes by key position"
+tooltip_text = "On: the piano follows where the keys are, so the bottom row plays the white notes on QWERTZ, AZERTY and every other layout. Off: it follows the letters printed on them."
+
+[node name="Layout" type="Label" parent="Root/Tabs/General"]
+layout_mode = 2
+theme_type_variation = &"MuteLabel"
+
+[node name="Devices" type="ItemList" parent="Root/Tabs/General"]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+
+[node name="Reconnect" type="Button" parent="Root/Tabs/General"]
+layout_mode = 2
+focus_mode = 0
+text = "Reconnect MIDI Devices"
+
+[node name="Note" type="Label" parent="Root/Tabs/General"]
+layout_mode = 2
+text = "Cadmium subscribes to every ALSA MIDI source except Midi Through. Notes play the selected channel; the modulation wheel and pitch bend follow it too."
+autowrap_mode = 3
+theme_type_variation = &"MuteLabel"
+
+[node name="Appearance" type="VBoxContainer" parent="Root/Tabs"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ColourRow" type="HBoxContainer" parent="Root/Tabs/Appearance"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Root/Tabs/Appearance/ColourRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Primary colour"
+
+[node name="Picker" type="ColorPickerButton" parent="Root/Tabs/Appearance/ColourRow"]
+custom_minimum_size = Vector2(120, 26)
+layout_mode = 2
+focus_mode = 0
+edit_alpha = false
+
+[node name="Reset" type="Button" parent="Root/Tabs/Appearance/ColourRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Cadmium Red"
+
+[node name="Swatches" type="HFlowContainer" parent="Root/Tabs/Appearance"]
+layout_mode = 2
+
+[node name="SecondRow" type="HBoxContainer" parent="Root/Tabs/Appearance"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Root/Tabs/Appearance/SecondRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Secondary colour"
+
+[node name="Picker" type="ColorPickerButton" parent="Root/Tabs/Appearance/SecondRow"]
+custom_minimum_size = Vector2(120, 26)
+layout_mode = 2
+focus_mode = 0
+edit_alpha = false
+
+[node name="Reset" type="Button" parent="Root/Tabs/Appearance/SecondRow"]
+layout_mode = 2
+focus_mode = 0
+text = "Hammer Grey"
+
+[node name="SecondSwatches" type="HFlowContainer" parent="Root/Tabs/Appearance"]
+layout_mode = 2
+
+[node name="Note" type="Label" parent="Root/Tabs/Appearance"]
+layout_mode = 2
+text = "The primary colour drives the theme, the icons and everything Cadmium draws itself. The playhead, the meters and the clip colours keep their own meanings."
+autowrap_mode = 3
+theme_type_variation = &"MuteLabel"
+
+[node name="Add-ons" type="VBoxContainer" parent="Root/Tabs"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Note" type="Label" parent="Root/Tabs/Add-ons"]
+layout_mode = 2
+text = "Add-ons are folders of their own with an addon.gd inside. What each one offers turns up in the Tools menu; switching one off here leaves it where it is."
+autowrap_mode = 3
+theme_type_variation = &"MuteLabel"
+
+[node name="List" type="VBoxContainer" parent="Root/Tabs/Add-ons"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="Row" type="HBoxContainer" parent="Root/Tabs/Add-ons"]
+layout_mode = 2
+
+[node name="Folder" type="Button" parent="Root/Tabs/Add-ons/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Open the add-ons folder"
+
+[node name="Reload" type="Button" parent="Root/Tabs/Add-ons/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Look again"
+
+[node name="Folders" type="VBoxContainer" parent="Root/Tabs"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Vst3" parent="Root/Tabs/Folders" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="SoundFonts" parent="Root/Tabs/Folders" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="Samples" parent="Root/Tabs/Folders" instance=ExtResource("2")]
+layout_mode = 2
+
+[node name="Audio" type="VBoxContainer" parent="Root/Tabs"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Info" type="Label" parent="Root/Tabs/Audio"]
+layout_mode = 2
+text = ""
+autowrap_mode = 3
+theme_type_variation = &"MuteLabel"
+
+[node name="DeviceRow" type="HBoxContainer" parent="Root/Tabs/Audio"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Root/Tabs/Audio/DeviceRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Output device"
+
+[node name="Device" type="OptionButton" parent="Root/Tabs/Audio/DeviceRow"]
+layout_mode = 2
+focus_mode = 0
+
+[node name="Rescan" type="Button" parent="Root/Tabs/Audio"]
+layout_mode = 2
+focus_mode = 0
+text = "Rescan VST3 Plugins"
+
+[node name="VstNote" type="Label" parent="Root/Tabs/Audio"]
+layout_mode = 2
+text = "Cadmium hosts VST3 processing and exposes every parameter the plugin publishes, and embeds the plugin's own editor where it has one -- the generic panel is a switch away, and either way the controls automate and save like stock ones."
+autowrap_mode = 3
+theme_type_variation = &"MuteLabel"

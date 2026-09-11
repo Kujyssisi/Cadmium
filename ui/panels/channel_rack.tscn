@@ -1,0 +1,67 @@
+; The channel rack's frame. One row per channel is built in channel_rack.gd --
+; how many there are, and what is in them, is the project's business.
+[gd_scene load_steps=2 format=3 uid="uid://cdchannelrack"]
+
+[ext_resource type="Script" path="res://ui/panels/channel_rack.gd" id="1"]
+
+[node name="ChannelRack" type="PanelContainer"]
+theme_type_variation = &"Dock"
+script = ExtResource("1")
+
+[node name="Col" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Caption" type="PanelContainer" parent="Col"]
+layout_mode = 2
+theme_type_variation = &"CaptionBar"
+
+[node name="Row" type="HBoxContainer" parent="Col/Caption"]
+layout_mode = 2
+
+[node name="Icon" type="TextureRect" parent="Col/Caption/Row"]
+layout_mode = 2
+stretch_mode = 4
+
+[node name="Title" type="Label" parent="Col/Caption/Row"]
+layout_mode = 2
+text = "CHANNEL RACK"
+theme_type_variation = &"Caption"
+
+[node name="Spacer" type="Control" parent="Col/Caption/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Steps" type="Label" parent="Col/Caption/Row"]
+layout_mode = 2
+theme_type_variation = &"MuteLabel"
+
+[node name="Bars" type="SpinBox" parent="Col/Caption/Row"]
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+min_value = 1.0
+max_value = 64.0
+value = 4.0
+prefix = "bars "
+tooltip_text = "Length of this pattern, in bars"
+
+[node name="PatternMenu" type="MenuButton" parent="Col/Caption/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Pattern"
+
+[node name="AddChannel" type="Button" parent="Col/Caption/Row"]
+layout_mode = 2
+focus_mode = 0
+text = "Channel"
+tooltip_text = "Add an instrument channel"
+
+[node name="Scroll" type="ScrollContainer" parent="Col"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 2
+
+[node name="Rows" type="VBoxContainer" parent="Col/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1

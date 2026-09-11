@@ -1,0 +1,7 @@
+; CdGateView, as a scene so the panel that shows it is loaded rather than built.
+[gd_scene load_steps=2 format=3 uid="uid://cdviewgateview"]
+
+[ext_resource type="Script" path="res://ui/widgets/views/gate_view.gd" id="1"]
+
+[node name="Gate" type="Control"]
+script = ExtResource("1")
