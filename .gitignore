@@ -1,0 +1,47 @@
+# Godot's import cache and local editor state. Never commit .godot/ -- it is
+# derived from the files that *are* committed and it is 95 MB here.
+/.godot/
+
+# The .import files beside resources ARE committed on purpose: they carry each
+# resource's UID and its import settings, and without them a fresh clone
+# reimports everything with different ids and every reference breaks.
+
+# --- build output -------------------------------------------------------
+/build/
+/dist/
+/selftest/
+/native/bin/
+*.os
+*.obj
+*.a
+*.lib
+*.exp
+*.pdb
+
+# --- scratch ------------------------------------------------------------
+/tmp/
+# "shit" is a stray 8 MB render, a file rather than a folder, so it needs the
+# rule without a trailing slash. Both spellings, in case it becomes a folder.
+/shit
+/shit/
+
+# scons' build database, and the probe plugins built by tools/vst3probe/build.sh
+/native/.sconsign.dblite
+/tools/vst3probe/out/
+
+# --- content too big for git -------------------------------------------
+# FluidR3_GM.sf2 is 142 MB, which is over GitHub's 100 MB hard limit for a
+# single file, and it is not ours to redistribute through a source repo
+# anyway. It is downloaded separately and staged into releases by
+# tools/package.sh -- see content/README.md.
+/content/Content/*.sf2
+/content/Content/*.sf3
+
+# The FLARE banks (964 KB of JSON presets) and the soundfont's licence text
+# are small and stay in the repo.
+!/content/Content/*.LICENSE.txt
+
+# --- editor and OS droppings -------------------------------------------
+*~
+.DS_Store
+Thumbs.db
