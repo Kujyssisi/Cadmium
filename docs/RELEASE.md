@@ -188,7 +188,26 @@ product's Downloadables, and put the changelog in the release notes. There is a
 CLI (`npx @polar-sh/cli`) but the upload is simple enough by hand, and it is one
 file per platform.
 
-### GitHub Releases (if the source goes public)
+### GitHub Releases
+
+    tools/release.sh                  release whatever version dist/ holds
+    tools/release.sh 1.0.0            that version (must match the zip names)
+    tools/release.sh 1.0.0 --publish  go live instead of leaving a draft
+
+It refuses to do anything until: gh is logged in, the working tree is clean,
+HEAD is already on origin, the tag does not exist, and every zip opens and
+contains its licence files. Then it shows you what it is about to do and makes
+you type the tag back before it tags, pushes the tag and uploads.
+
+A **draft** unless you pass `--publish`: a draft can be deleted and rewritten,
+a published release has already been downloaded by somebody. Release notes are
+generated from the commits since the previous tag.
+
+This is the only script in the repository that pushes, and it asks first.
+
+#### By hand instead
+
+
 
     gh release create v1.0.0 \
         dist/Cadmium-1.0.0-linux-x86_64.zip \
