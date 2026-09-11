@@ -579,7 +579,8 @@ which ones; install them and reopen.
 
 Licensing
 ---------
-LICENSE.txt covers Cadmium itself. THIRD-PARTY-NOTICES.md lists everything
+Cadmium is free software under the GNU General Public License, version 3 or
+later. LICENSE.txt is the full text and COPYRIGHT the notice. THIRD-PARTY-NOTICES.md lists everything
 else that is in this folder and what it is licensed under, and
 THIRD-PARTY-GODOT.txt carries the notices for the Godot Engine and the
 libraries it bundles. All three ship with every copy.

@@ -318,16 +318,16 @@ loading nothing:
 
 ## Licence
 
-`LICENSE` is Cadmium's own, and it is deliberately a placeholder — "all rights
-reserved", because that is the only choice that can be walked back later. Read
-the note at the top of it and decide before publishing.
+Cadmium is **free software under the GNU General Public License, version 3 or
+later**. You may use it, study it, change it and share it; if you distribute a
+modified version you have to publish your changes under the GPL as well. The
+full text is in `LICENSE` and the notice is in `COPYRIGHT`.
 
-`THIRD-PARTY-NOTICES.md` is everything else: Godot and godot-cpp (MIT), the VST3
-interfaces (MIT), FluidR3_GM (MIT), Roboto (Apache-2.0) and Noto Sans Mono
-(OFL-1.1). None of them constrain what Cadmium itself can be licensed as. Two
-things in there are unresolved and are listed at the top of the file: the
-provenance of the metronome samples, and the Steinberg trade mark on the word
-"VST".
+`THIRD-PARTY-NOTICES.md` covers everything else: Godot and godot-cpp (MIT), the
+VST3 interfaces (MIT), FluidR3_GM (MIT), Roboto (Apache-2.0) and Noto Sans Mono
+(OFL-1.1). All of them are GPL-compatible and none of them forced the choice.
+Two things in that file are still open: the provenance of the metronome samples,
+and the Steinberg trade mark on the word "VST".
 
 
 ## Keyboard

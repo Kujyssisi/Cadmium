@@ -4,9 +4,9 @@ Everything Cadmium ships that somebody else wrote, what it is licensed under,
 and what that obliges you to do. **This file must ship with every build** — most
 of these licences require the notice to travel with the binary.
 
-None of these force a licence on Cadmium itself. They are all permissive (MIT,
-Apache-2.0, OFL), so Cadmium may be sold, given away, or opened, as you like.
-See `LICENSE`.
+None of these forced a licence on Cadmium itself -- they are all permissive
+(MIT, Apache-2.0, OFL) and all compatible with the GPL. Cadmium is GPL-3.0-or-
+later; see `LICENSE` and `COPYRIGHT`.
 
 ---
 

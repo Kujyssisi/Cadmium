@@ -8,10 +8,9 @@ Everything you need to type. Nothing here has been run for you.
 
 These are decisions, not commands, and two of them can stop a release dead.
 
-1. **Pick a licence.** `LICENSE` is "all rights reserved" as a placeholder,
-   because that is the only choice that can be reversed later. Read the note at
-   the top of it and decide. Nothing else in the project forces your hand —
-   every dependency is MIT / Apache-2.0 / OFL.
+1. ~~Pick a licence.~~ **Done:** Cadmium is GPL-3.0-or-later. `LICENSE` holds the
+   full text and `COPYRIGHT` the notice. Every dependency is MIT / Apache-2.0 /
+   OFL, all GPL-compatible, so nothing forced it and nothing conflicts.
 
 2. **Settle the metronome clicks.** `resources/metronome_*.wav` came from two
    `.ogg` files with no licence attached and unknown provenance. Confirm you own

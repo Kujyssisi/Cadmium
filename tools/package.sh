@@ -39,6 +39,7 @@ licences() {
 stage_common() {
 	local out="$1"
 	cp -f LICENSE "$out/LICENSE.txt"
+	cp -f COPYRIGHT "$out/COPYRIGHT.txt"
 	cp -f THIRD-PARTY-NOTICES.md "$out/THIRD-PARTY-NOTICES.md"
 	cp -f build/THIRD-PARTY-GODOT.txt "$out/THIRD-PARTY-GODOT.txt"
 	# The soundfont and the FLARE presets. Deliberately not in the pck -- the

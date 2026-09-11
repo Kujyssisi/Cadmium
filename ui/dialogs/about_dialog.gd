@@ -59,6 +59,6 @@ VST3 plugins are hosted for both instruments and effects.
 
 The audio engine is C++ running on the audio thread; the interface is Godot. Nothing is sample-rate-locked and every render is done offline, so an export sounds exactly like the mix.
 
-By [b]cfinite[/b].  Copyright (c) 2026 cfinite. See LICENSE.txt and THIRD-PARTY-NOTICES.md beside the application.
+By [b]cfinite[/b].  Copyright (C) 2026 cfinite. Free software under the [b]GNU GPL, version 3 or later[/b] — see LICENSE.txt, COPYRIGHT.txt and THIRD-PARTY-NOTICES.md beside the application.
 
 [i]Linux and Windows. Interface styled after Source 2 Hammer, primary colour cadmium red.[/i]"""
