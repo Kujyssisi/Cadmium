@@ -74,12 +74,18 @@ fi
 
 # Every archive opened and looked inside, because the one thing worse than no
 # release is a release of a corrupt zip.
+#
+# The listing is taken once into a variable and matched with a here-string
+# rather than piped into "grep -q". Piping is the obvious way to write this and
+# it is wrong under "set -o pipefail": grep -q exits the moment it matches, unzip
+# is still writing, gets SIGPIPE, and the pipeline reports 141 -- so a file that
+# is present is reported missing, and only sometimes, because it is a race.
 for z in "${zips[@]}"; do
 	unzip -t "$z" >/dev/null 2>&1 || die "$(basename "$z") is corrupt"
-	for want in LICENSE.txt THIRD-PARTY-NOTICES.md THIRD-PARTY-GODOT.txt; do
-		unzip -l "$z" | grep -q "$want" || warn "$(basename "$z") has no $want"
+	listing="$(unzip -l "$z")"
+	for want in LICENSE.txt THIRD-PARTY-NOTICES.md THIRD-PARTY-GODOT.txt FluidR3_GM.sf2; do
+		grep -qF "$want" <<<"$listing" || warn "$(basename "$z") has no $want"
 	done
-	unzip -l "$z" | grep -q "FluidR3_GM.sf2" || warn "$(basename "$z") has no soundfont"
 	printf '  %s  %s\n' "$(du -h "$z" | cut -f1)" "$(basename "$z")"
 done
 
