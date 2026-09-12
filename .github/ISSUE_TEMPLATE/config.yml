@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How to send a change
+    url: https://github.com/Kujyssisi/Cadmium/blob/main/CONTRIBUTING.md
+    about: Building Cadmium, the house style, and what happens to a pull request.
+  - name: What is already in it
+    url: https://github.com/Kujyssisi/Cadmium/blob/main/README.md
+    about: Read this before asking for something — it may be there already.

@@ -1,0 +1,99 @@
+name: Bug report
+description: Something in Cadmium does the wrong thing, or stops.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One bug per report, please. If Cadmium fell over, the report it left
+        behind is worth more than any description: **Help ▸ Crash Reports… ▸
+        Copy** and paste it in below.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, and what Cadmium did instead of what you expected.
+      placeholder: |
+        Dragged the right edge of an audio clip past the end of the playlist and
+        the clip drew itself over the ruler. I expected it to stop at the last bar.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: >
+        From a fresh start, the shortest sequence that shows it. If it needs a
+        project, a sample or a particular plugin, say so — and attach the
+        `.cadmium` if you can (drag it into this box; GitHub takes any file if
+        you zip it).
+      placeholder: |
+        1. New project
+        2. Drop any WAV on playlist track 1
+        3. Drag its right edge to the right, past bar 64
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: >
+        The version from **Help ▸ About Cadmium**, or the commit you built if
+        you built it yourself.
+      placeholder: "2026.09.12"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Where it runs
+      options:
+        - Linux (release zip)
+        - Linux (built from source)
+        - Windows (release zip)
+        - Windows (built from source)
+        - Somewhere else
+    validations:
+      required: true
+
+  - type: input
+    id: system
+    attributes:
+      label: Distribution or Windows version, and your audio device
+      description: >
+        A DAW's bugs are often the device's. Card or interface, driver, sample
+        rate and buffer size if you know them.
+      placeholder: "Arch, kernel 6.12, Focusrite 2i2 over PipeWire, 48 kHz / 256"
+
+  - type: input
+    id: plugins
+    attributes:
+      label: Plugins involved
+      description: >
+        If a hosted VST3 is anywhere near it, name it and its vendor and
+        version. Leave blank if none is.
+      placeholder: "Vital 1.5.5 (Vital Audio)"
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Crash report or log
+      description: >
+        A crash report from **Help ▸ Crash Reports…**, or the log from
+        `~/.local/share/godot/app_userdata/Cadmium/logs/godot.log`
+        (`%APPDATA%\Godot\app_userdata\Cadmium\logs\` on Windows). Pasted text
+        is easier to search than a screenshot.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send it
+      options:
+        - label: I searched the open issues and this is not one of them.
+          required: true
+        - label: It still happens on the newest release, or on current `main`.

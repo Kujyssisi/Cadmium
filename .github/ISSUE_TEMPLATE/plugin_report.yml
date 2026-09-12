@@ -1,0 +1,57 @@
+name: Plugin does not work
+description: A VST3 or SoundFont that Cadmium will not load, or gets wrong.
+labels: ["bug", "plugins"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cadmium scans plugins in a process of its own, so one that crashes on
+        load takes the scan down and nothing else. That scan leaves a report:
+        **Help ▸ Crash Reports…**, the ones named `cadmium-scan-…`.
+
+  - type: input
+    id: plugin
+    attributes:
+      label: The plugin
+      description: Name, vendor, version, and where you got it.
+      placeholder: "Surge XT 1.3.4 (Surge Synth Team), distro package"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What goes wrong
+      options:
+        - It does not appear in the picker at all
+        - It appears but fails to load
+        - It loads but makes no sound
+        - Its editor does not open, or opens blank or the wrong size
+        - Its parameters do not show up, or the wrong ones do
+        - It does not come back when the project is reopened
+        - Something else
+    validations:
+      required: true
+
+  - type: input
+    id: path
+    attributes:
+      label: Where the plugin lives on disk
+      placeholder: "/usr/lib/vst3/Surge XT.vst3"
+
+  - type: textarea
+    id: report
+    attributes:
+      label: Scan report or log
+      description: >
+        The `cadmium-scan-…` report if there is one, otherwise the log from
+        `~/.local/share/godot/app_userdata/Cadmium/logs/godot.log`.
+      render: text
+
+  - type: input
+    id: version
+    attributes:
+      label: Cadmium version and OS
+      placeholder: "2026.09.12, Linux"
+    validations:
+      required: true

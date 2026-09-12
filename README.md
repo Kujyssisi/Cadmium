@@ -316,6 +316,31 @@ loading nothing:
   rather than as status lines that scroll past.
 
 
+## Bugs, and sending a change
+
+**Something is broken:** [open an
+issue](https://github.com/Kujyssisi/Cadmium/issues/new/choose). If Cadmium
+stopped rather than misbehaved, **Help ▸ Crash Reports…** holds what it was
+doing at the time and copies it to the clipboard — a host that loads other
+people's code cannot be crash-proof, so it writes that down instead. Paste it
+in with the steps that got you there.
+
+**Something should work differently:** open an issue for that too, and say what
+you were trying to get done rather than only the feature you have in mind for
+it. Sometimes there is already a way.
+
+**You have fixed it yourself:** fork, branch, run `--cd-selftest`, and open a
+pull request against `main`. You do not need to ask first. Every one gets read
+and either merged, sent back with a question, or — when the fix turns out to
+belong somewhere else in the engine — written here instead, with the commit
+crediting you and linking the pull request.
+
+`CONTRIBUTING.md` has the build and test commands, the house style, and the
+three rules that get a change sent back regardless of how well it works: the
+audio thread allocates nothing, an export is the playback path, and new
+dependencies are agreed before they are written.
+
+
 ## Licence
 
 Cadmium is **free software under the GNU General Public License, version 3 or
