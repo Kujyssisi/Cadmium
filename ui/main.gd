@@ -1255,9 +1255,23 @@ func _run_shot() -> void:
 		for i in 6:
 			await get_tree().process_frame
 		_shot_view = _shot_view.substr(5)
+	# After demo_, so that demo_piano:<pattern> works as well as piano:<pattern>.
+	if _shot_view.begins_with("piano:"):
+		_shot_arg = _shot_view.substr(6)
+		_shot_view = "piano"
 	match _shot_view:
 		"piano":
+			# piano:<pattern>[:<channel>] picks what to photograph. The comma
+			# after the path is already the view's own separator, so these are
+			# colon-separated.
 			tabs.current_tab = 1
+			if not _shot_arg.is_empty():
+				var want := _shot_arg.split(":")
+				App.select_pattern(int(want[0]))
+				if want.size() > 1:
+					App.select_channel(int(want[1]))
+				for i in 6:
+					await get_tree().process_frame
 			piano.focus_channel(App.current_channel)
 		"mixer":
 			tabs.current_tab = 2

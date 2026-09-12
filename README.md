@@ -4,6 +4,11 @@ A digital audio workstation for Linux and Windows: channel rack, piano roll,
 playlist, mixer with sends and sidechains, a set of instruments and effects
 written for it, a SoundFont player, a sampler, and VST3 hosting.
 
+![Cadmium in song mode: the playlist with pattern clips, the channel rack underneath, the browser down the left](docs/img/playlist.png)
+
+*Song mode: pattern clips drawing their own notes, the channel rack underneath,
+the browser down the left.*
+
 The interface follows Comotion's — Source 2 Hammer by way of a video editor:
 neutral grey, square, dense, captioned panels. The primary colour is cadmium
 red, and it is user-settable (Preferences ▸ Appearance).
@@ -51,6 +56,14 @@ red, and it is user-settable (Preferences ▸ Appearance).
 - **Tools** — draw, select, slice and mute, on both the piano roll and the
   playlist. Tempo and musical key can be detected from any audio file.
 
+![The piano roll on a four-bar chord pattern, with a velocity lane underneath](docs/img/piano-roll.png)
+
+*The piano roll on a four-bar chord pattern, with the velocity lane underneath.*
+
+![An automation clip open in its own curve editor, over the playlist](docs/img/automation.png)
+
+*An automation clip in its own editor, over the playlist it plays from.*
+
 **Mixing**
 
 - 16 inserts plus master, eight effect slots each, four sends per track, and a
@@ -67,6 +80,18 @@ red, and it is user-settable (Preferences ▸ Appearance).
 - Effects and instruments are chosen from a **searchable picker** — type to
   filter, browse by category, star favourites, and recent picks come back to the
   top.
+- A **scope** on a tab of its own: what is actually leaving the master bus, as a
+  waveform, a spectrum with peak hold and a stereo field with a correlation
+  meter — all three at once, or one of them full size.
+
+![The mixer, with the selected strip's effect stack and sends on the left](docs/img/mixer.png)
+
+*The mixer: the selected strip's effect stack and its four sends on the left,
+routing drawn under the strips.*
+
+![The scope: waveform, spectrum and stereo field of the master bus](docs/img/scope.png)
+
+*The scope, reading the master bus while the song plays.*
 
 **Instruments** (all written for Cadmium, all C++)
 
@@ -84,6 +109,12 @@ red, and it is user-settable (Preferences ▸ Appearance).
 | **Modal** | Struck resonator bank: bell, marimba, glass, metal and tube, with strike position, inharmonicity and mallet tone |
 | **Vox** | Formant ensemble: three detuned voices through vowel filters you can sweep between, with breath and vibrato |
 | **Prism** | **Plays a picture.** Left to right is time, up is pitch, brightness is how loud that partial is, and colour decides where it sits in the stereo image. A bank of sine oscillators, one per row, turns it back into sound; the panel shows the picture with the scan line running across it |
+
+![Ember's panel: envelope and filter displays, oscillator knobs, a keyboard at the foot](docs/img/ember.png)
+
+*Ember, one of the stock instruments. Every instrument window is built the same
+way: its own displays at the top, every parameter searchable underneath, and a
+keyboard at the foot.*
 
 **Effects**
 
@@ -285,8 +316,10 @@ All of these take a real window; `--headless` uses the dummy renderer.
                           engine's master peak, Godot's bus peak, voices and CPU
     --cd-shot=<png>[,view]  screenshot; view is playlist|piano|mixer|scope|
                           plugin|fx|picker|layers|vst3|sf2, or demo_<view> to
-                          build the demo first. vst3hold:<name> opens a hosted
-                          plugin's own editor and leaves it up to be captured.
+                          build the demo first. piano:<pattern>[:<channel>]
+                          photographs a particular one rather than whatever is
+                          selected. vst3hold:<name> opens a hosted plugin's own
+                          editor and leaves it up to be captured.
     --cd-vsttest=<dir>[,filter[,skip]]
                           renders audio through every hosted plugin, opens its
                           own editor, reads back what it painted and saves it as
