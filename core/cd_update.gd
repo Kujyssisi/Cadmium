@@ -377,15 +377,28 @@ static func _linux_script(staged: String, dir: String, mode: String,
 # It waits for Cadmium to exit before touching anything: replacing a running
 # program's own files is how an update becomes a program that will not start.
 # There is deliberately no "set -e" -- if the swap goes wrong half way, having
-# Cadmium start again matters more than the script's exit code.
+# Cadmium start again matters more than the script's exit code, and the new
+# files are kept rather than thrown away so there is something to finish by
+# hand.
 i=0
 while kill -0 %d 2>/dev/null && [ $i -lt 600 ]; do sleep 0.2; i=$((i+1)); done
-%s
-rm -rf "%s"
-rm -f "%s"
+if %s; then
+	rm -rf "%s"
+	rm -f "%s"
+else
+	cat > "%s/UPDATE-DID-NOT-FINISH.txt" <<NOTE
+Cadmium tried to update itself and the copy did not finish.
+
+The new version is unpacked and waiting here:
+  %s
+
+Nothing has been deleted. Copy that folder over this one by hand, or run
+its install.sh, and delete this note.
+NOTE
+fi
 "%s" &
 rm -f "$0"
-""" % [me, run, new_dir, ProjectSettings.globalize_path(archive), exe]
+""" % [me, run, new_dir, ProjectSettings.globalize_path(archive), old_dir, new_dir, exe]
 
 
 static func _windows_copy_script(staged: String, dir: String, archive: String) -> String:
@@ -402,15 +415,28 @@ if not errorlevel 1 (
   timeout /t 1 /nobreak >nul
   goto wait
 )
+rem robocopy calls 0-7 success and 8 and up failure, which is why this is not
+rem the usual "if errorlevel 1".
 robocopy "%s" "%s" /E /IS /NFL /NDL /NJH /NJS /NP >nul
+if errorlevel 8 goto failed
 rmdir /s /q "%s"
 del /q "%s"
+goto run
+:failed
+rem The new files are left where they are rather than thrown away, so there is
+rem something to finish by hand.
+echo Cadmium tried to update itself and the copy did not finish.> "%s\\UPDATE-DID-NOT-FINISH.txt"
+echo The new version is unpacked and waiting in %s>> "%s\\UPDATE-DID-NOT-FINISH.txt"
+:run
 start "" "%s"
 del "%%~f0"
 """ % [me, me, ProjectSettings.globalize_path(staged).replace("/", "\\"),
 		ProjectSettings.globalize_path(dir).replace("/", "\\"),
 		ProjectSettings.globalize_path(staged).replace("/", "\\"),
-		ProjectSettings.globalize_path(archive).replace("/", "\\"), exe]
+		ProjectSettings.globalize_path(archive).replace("/", "\\"),
+		ProjectSettings.globalize_path(dir).replace("/", "\\"),
+		ProjectSettings.globalize_path(staged).replace("/", "\\"),
+		ProjectSettings.globalize_path(dir).replace("/", "\\"), exe]
 
 
 static func _windows_setup_script(setup: String) -> String:
