@@ -52,6 +52,18 @@ stage_common() {
 	[ -f docs/SHIPPED-README.txt ] && cp -f docs/SHIPPED-README.txt "$out/README.txt" || true
 }
 
+# What the installers need, in one folder inside the zip so install.sh has a
+# single place to look and a user poking around can see what it is about to do.
+stage_linux_installer() {
+	local out="$1"
+	mkdir -p "$out/packaging"
+	cp -f packaging/linux/cadmium.desktop      "$out/packaging/"
+	cp -f packaging/linux/cadmium-project.xml  "$out/packaging/"
+	cp -f icon.svg                             "$out/packaging/icon.svg"
+	cp -f packaging/linux/install.sh           "$out/install.sh"
+	chmod +x "$out/install.sh"
+}
+
 zip_up() {
 	local dir="$1" name="$2"
 	mkdir -p "$DIST"
@@ -80,6 +92,7 @@ build_linux() {
 	say "export: Linux -> $out"
 	"$GODOT" --headless --path . --export-release "Linux" "$out/Cadmium.x86_64"
 	stage_common "$out"
+	stage_linux_installer "$out"
 	zip_up "$out" "Cadmium-$VERSION-linux-x86_64"
 }
 
@@ -112,6 +125,7 @@ build_linux_arm64() {
 	say "export: Linux ARM64 -> $out"
 	"$GODOT" --headless --path . --export-release "Linux ARM64" "$out/Cadmium.arm64"
 	stage_common "$out"
+	stage_linux_installer "$out"
 	zip_up "$out" "Cadmium-$VERSION-linux-arm64"
 }
 

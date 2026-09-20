@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- What a .cadmium file is, so the desktop opens one with Cadmium and draws
+     it with Cadmium's icon. KDE, GNOME and Xfce all read this. -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-cadmium-project">
+    <comment>Cadmium project</comment>
+    <comment xml:lang="en">Cadmium project</comment>
+    <glob pattern="*.cadmium"/>
+    <icon name="cadmium"/>
+    <generic-icon name="audio-x-generic"/>
+  </mime-type>
+</mime-info>

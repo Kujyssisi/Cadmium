@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Cadmium
+GenericName=Digital Audio Workstation
+Comment=Pattern-based music production: channel rack, piano roll, playlist, mixer, VST3
+Exec=@EXEC@ %f
+Icon=cadmium
+Terminal=false
+Categories=AudioVideo;Audio;AudioVideoEditing;Sequencer;
+MimeType=application/x-cadmium-project;audio/midi;
+Keywords=daw;music;audio;sequencer;synth;vst;
+StartupNotify=true
+# Godot names the window class after the project; without this KDE files the
+# window under a generic Godot entry instead of this one.
+StartupWMClass=Cadmium
