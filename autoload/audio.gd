@@ -7,6 +7,8 @@ signal transport_changed()
 signal midi_note(key: int, velocity: float, on: bool)
 signal midi_cc(controller: int, value: float)
 signal midi_bend(value: float)
+## The machine's own input opened or closed, and why if it would not open.
+signal input_changed(on: bool, problem: String)
 
 var engine                                  ## CdEngine (GDExtension)
 var meters := PackedFloat32Array()
@@ -105,6 +107,128 @@ func _process(_dt: float) -> void:
 		transport_changed.emit()
 	if _midi_open:
 		_pump_midi()
+	if input_on:
+		_pump_input()
+	# What the audio thread has recorded, onto the end of the take. The ring
+	# between the two is seconds long, so this only has to be regular.
+	if engine.record_armed():
+		engine.pump_take()
+
+
+# ---------------------------------------------------------------------------
+# The machine's own audio input
+# ---------------------------------------------------------------------------
+## Godot reads the microphone on a bus of its own, and the capture effect on
+## that bus is where the frames come out. The bus is muted, so nothing is heard
+## through Godot's mixer: monitoring is Cadmium's job, and doing it in both
+## places at once is a voice heard twice, a few milliseconds apart.
+const INPUT_BUS := "CdInput"
+
+var input_on := false
+var input_problem := ""
+var _in_player: AudioStreamPlayer
+var _in_capture: AudioEffectCapture
+var _in_bus := -1
+## How many frames have come in since the device was opened. Only the input
+## test reads it; it is how a run can say whether anything arrived at all.
+var input_frames := 0
+
+
+func input_devices() -> PackedStringArray:
+	var out := PackedStringArray(["Default"])
+	for d in AudioServer.get_input_device_list():
+		if String(d) != "Default":
+			out.append(String(d))
+	return out
+
+
+func input_device() -> String:
+	return AudioServer.input_device
+
+
+func set_input_device(device: String) -> void:
+	AudioServer.input_device = device
+	if input_on:
+		# The stream reads whatever the server is pointed at when it starts.
+		set_input_enabled(false)
+		set_input_enabled(true)
+
+
+## Opens or closes the input. Everything that wants a voice in -- monitoring a
+## strip, feeding a vocoder, recording a take -- goes through this one switch,
+## so the microphone is held open only while something is actually listening.
+func set_input_enabled(on: bool) -> bool:
+	if on == input_on:
+		return input_on
+	if not on:
+		if _in_player != null:
+			_in_player.stop()
+		input_on = false
+		input_problem = ""
+		input_changed.emit(false, "")
+		return false
+	if not bool(ProjectSettings.get_setting("audio/driver/enable_input", false)):
+		input_problem = "Audio input is switched off in this build"
+		input_changed.emit(false, input_problem)
+		return false
+	_make_input_bus()
+	if _in_player == null:
+		_in_player = AudioStreamPlayer.new()
+		_in_player.stream = AudioStreamMicrophone.new()
+		_in_player.bus = INPUT_BUS
+		add_child(_in_player)
+	if _in_capture != null:
+		_in_capture.clear_buffer()
+	_in_player.play()
+	input_on = _in_player.playing
+	input_problem = "" if input_on else "The system would not open an input device"
+	input_changed.emit(input_on, input_problem)
+	return input_on
+
+
+## The bus the microphone plays into: muted, so it is captured and not heard,
+## with a buffer long enough that a dropped frame in the interface does not
+## cost a syllable.
+func _make_input_bus() -> void:
+	_in_bus = AudioServer.get_bus_index(INPUT_BUS)
+	if _in_bus < 0:
+		_in_bus = AudioServer.bus_count
+		AudioServer.add_bus(_in_bus)
+		AudioServer.set_bus_name(_in_bus, INPUT_BUS)
+		AudioServer.set_bus_send(_in_bus, "Master")
+	AudioServer.set_bus_mute(_in_bus, true)
+	for i in AudioServer.get_bus_effect_count(_in_bus):
+		var fx := AudioServer.get_bus_effect(_in_bus, i)
+		if fx is AudioEffectCapture:
+			_in_capture = fx
+			return
+	_in_capture = AudioEffectCapture.new()
+	_in_capture.buffer_length = 0.25
+	AudioServer.add_bus_effect(_in_bus, _in_capture)
+
+
+## Everything the capture effect has, handed to the engine. Called every frame:
+## the ring between here and the audio thread is over a second long, so a slow
+## frame costs latency rather than a gap.
+func _pump_input() -> void:
+	if _in_capture == null or engine == null:
+		return
+	# A device unplugged mid-session stops the stream rather than erroring, and
+	# silently pushing nothing for the rest of the session is the worst way to
+	# find that out.
+	if _in_player != null and not _in_player.playing:
+		input_on = false
+		input_problem = "The input device stopped"
+		input_changed.emit(false, input_problem)
+		return
+	var have: int = _in_capture.get_frames_available()
+	if have <= 0:
+		return
+	var frames: PackedVector2Array = _in_capture.get_buffer(have)
+	if frames.is_empty():
+		return
+	input_frames += frames.size()
+	engine.push_input(frames)
 
 
 func _pump_midi() -> void:

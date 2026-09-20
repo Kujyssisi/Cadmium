@@ -30,6 +30,11 @@ Engine::Engine() {
 	mixer_.resize(1);
 	mixer_[0].name = "Master";
 	set_mixer_count(17);
+	// Both rings are allocated once, here, and never resized: the audio thread
+	// reads one and writes the other, and neither may ever allocate.
+	in_l_.assign((size_t)kInRing, 0.0f);
+	in_r_.assign((size_t)kInRing, 0.0f);
+	rec_ring_.assign((size_t)kRecRing, 0.0f);
 }
 
 Engine::~Engine() {
@@ -654,7 +659,7 @@ void Engine::set_sample_settings(int index, const SampleSettings &s) {
 	// sample it had got, and put back at the same point of the new one -- so a
 	// sample stretched to twice the length carries on from the same place in it
 	// rather than jumping or going quiet.
-	struct Where { size_t voice; double frac; double end_frac; };
+	struct Where { size_t voice; double frac; };
 	const AudioFile *before = a.baked ? a.baked.get() : a.file.get();
 	const double before_frames = before ? (double)before->frames() : 0.0;
 	const int before_rate = before ? before->rate : 0;
@@ -662,7 +667,7 @@ void Engine::set_sample_settings(int index, const SampleSettings &s) {
 	for (size_t i = 0; i < audio_voices_.size(); i++) {
 		const AudioVoice &v = audio_voices_[i];
 		if (v.active && v.asset == index && before_frames > 0.0) {
-			playing.push_back({i, v.pos / before_frames, v.end_pos / before_frames});
+			playing.push_back({i, v.pos / before_frames});
 		}
 	}
 
@@ -675,7 +680,6 @@ void Engine::set_sample_settings(int index, const SampleSettings &s) {
 		AudioVoice &v = audio_voices_[w.voice];
 		if (now_frames <= 0.0) { v.active = false; continue; }
 		v.pos = w.frac * now_frames;
-		v.end_pos = std::min(now_frames, w.end_frac * now_frames);
 		if (before_rate > 0 && now->rate > 0 && now->rate != before_rate) {
 			const double r = (double)now->rate / (double)before_rate;
 			v.inc *= r;
@@ -756,7 +760,142 @@ double Engine::song_length() const {
 }
 
 // ---------------------------------------------------------------------------
-// Live input
+// Live audio input
+// ---------------------------------------------------------------------------
+/// Interface thread. Only the write cursor is touched, so a full ring drops
+/// what has just arrived rather than reaching into what the audio thread is
+/// reading.
+void Engine::push_input(const float *l, const float *r, int n) {
+	if (n <= 0 || !l || !r) return;
+	const uint64_t rd = in_rd_.load(std::memory_order_acquire);
+	uint64_t w = in_w_.load(std::memory_order_relaxed);
+	for (int i = 0; i < n; i++) {
+		if (w - rd >= kInRing) break;
+		const size_t k = (size_t)(w & (kInRing - 1));
+		in_l_[k] = l[i];
+		in_r_[k] = r[i];
+		w++;
+	}
+	in_w_.store(w, std::memory_order_release);
+}
+
+void Engine::set_input(int track, float gain) {
+	in_gain_.store(gain, std::memory_order_relaxed);
+	const int was = in_track_.exchange(track, std::memory_order_relaxed);
+	// Switching the input on starts from whatever arrives next rather than
+	// from a ring full of the last time it was on.
+	if (was < 0 && track >= 0) {
+		in_rd_.store(in_w_.load(std::memory_order_acquire), std::memory_order_release);
+		in_primed_ = false;
+	}
+}
+
+void Engine::arm_record(bool on) {
+	if (on == rec_on_.load(std::memory_order_relaxed)) return;
+	if (on) {
+		rec_rd_.store(rec_w_.load(std::memory_order_acquire), std::memory_order_release);
+		rec_mark_.store(true, std::memory_order_relaxed);
+	}
+	rec_on_.store(on, std::memory_order_release);
+}
+
+/// Audio thread. A block of the machine's input into the track that is
+/// listening for it, and into the take's ring if one is being recorded.
+void Engine::pull_input(int frames) {
+	const int track = in_track_.load(std::memory_order_relaxed);
+	const bool rec = rec_on_.load(std::memory_order_relaxed);
+	if (offline_ || (track < 0 && !rec)) {
+		in_peak_ *= 0.8f;
+		return;
+	}
+	const uint64_t w = in_w_.load(std::memory_order_acquire);
+	uint64_t rd = in_rd_.load(std::memory_order_relaxed);
+	uint64_t avail = w > rd ? w - rd : 0;
+	// A little is held back before anything is read at all. The interface
+	// thread fills this in bursts and the audio thread empties it steadily, so
+	// reading the instant the first frame lands means a gap every few blocks.
+	if (!in_primed_) {
+		if (avail < kInPrime) return;
+		in_primed_ = true;
+	}
+	// Once it is running it keeps running, short or not. An empty ring is a
+	// block of silence, never a block that is skipped: skipping one stops the
+	// take as well, and a take with the quiet parts missing does not line up
+	// with anything.
+	if (avail > kInMax) {
+		rd += avail - kInMax;
+		avail = kInMax;
+	}
+	if (rec && rec_mark_.exchange(false, std::memory_order_relaxed)) {
+		rec_beat_.store(beat_, std::memory_order_relaxed);
+	}
+	const float g = in_gain_.load(std::memory_order_relaxed);
+	MixerTrack *t = (track >= 0 && track < (int)mixer_.size()) ? &mixer_[(size_t)track] : nullptr;
+	uint64_t rw = rec_w_.load(std::memory_order_relaxed);
+	// How far the interface thread has drained to. Read once: it only ever
+	// moves forward, so a stale answer holds a frame back rather than letting
+	// one be written over something not yet taken.
+	const uint64_t rrd = rec_rd_.load(std::memory_order_acquire);
+	float peak = 0.0f;
+	for (int i = 0; i < frames; i++) {
+		float l = 0.0f, r = 0.0f;
+		if (avail > 0) {
+			const size_t k = (size_t)(rd & (kInRing - 1));
+			l = in_l_[k];
+			r = in_r_[k];
+			rd++;
+			avail--;
+		}
+		peak = std::max(peak, std::max(std::fabs(l), std::fabs(r)));
+		if (t) {
+			t->L[(size_t)i] += l * g;
+			t->R[(size_t)i] += r * g;
+		}
+		// The take is the input as it came in: what the strip does to it is
+		// the mix's business, not the recording's.
+		if (rec && rw + 2 - rrd <= kRecRing) {
+			rec_ring_[(size_t)(rw & (kRecRing - 1))] = l;
+			rec_ring_[(size_t)((rw + 1) & (kRecRing - 1))] = r;
+			rw += 2;
+		}
+	}
+	if (rec) rec_w_.store(rw, std::memory_order_release);
+	in_rd_.store(rd, std::memory_order_release);
+	in_peak_ = std::max(peak, in_peak_ * 0.8f);
+}
+
+/// Interface thread. What the audio thread has put in the ring, onto the end
+/// of the take.
+int Engine::pump_take() {
+	const uint64_t w = rec_w_.load(std::memory_order_acquire);
+	uint64_t rd = rec_rd_.load(std::memory_order_relaxed);
+	if (w <= rd) return 0;
+	const uint64_t have = w - rd;
+	if (take_.size() + (size_t)have > kTakeMax) return 0;
+	const int frames = (int)(have / 2);
+	for (uint64_t i = 0; i < have; i++) {
+		take_.push_back(rec_ring_[(size_t)((rd + i) & (kRecRing - 1))]);
+	}
+	rec_rd_.store(w, std::memory_order_release);
+	return frames;
+}
+
+double Engine::take_seconds() const {
+	return sr > 0.0 ? (double)(take_.size() / 2) / sr : 0.0;
+}
+
+bool Engine::write_take(const std::string &path, int bits) {
+	if (take_.size() < 2) return false;
+	return wav_save(path, take_.data(), (int)(take_.size() / 2), 2, (int)sr, bits);
+}
+
+void Engine::clear_take() {
+	take_.clear();
+	take_.shrink_to_fit();
+}
+
+// ---------------------------------------------------------------------------
+// Live note input
 // ---------------------------------------------------------------------------
 void Engine::note_on(int channel, int key, float vel) {
 	std::lock_guard<std::mutex> g(mutex);
@@ -1109,9 +1248,14 @@ void Engine::start_audio_clip(size_t ci, double into) {
 	slot->base_inc = std::pow(2.0, c.pitch / 12.0) * (double)f.rate / sr;
 	slot->inc = slot->base_inc * std::pow(2.0, (double)as.live_pitch / 12.0)
 			* std::max(0.02, (double)as.live_speed);
-	// Read position is in source frames: beats -> seconds -> frames.
-	slot->pos = (c.offset + std::max(0.0, into)) * 60.0 / bpm_ * (double)f.rate;
-	slot->end_pos = (c.offset + c.length) * 60.0 / bpm_ * (double)f.rate;
+	// Where in the file to start, in source frames, and how far into the clip
+	// the playhead already is, in output frames. The two are only the same
+	// number when the sample is played at its own rate: read it twice as fast
+	// and half a clip's worth of arrangement is a whole clip's worth of file.
+	const double into_out = std::max(0.0, into) * 60.0 / bpm_ * sr;
+	slot->pos = c.offset * 60.0 / bpm_ * (double)f.rate + into_out * slot->inc;
+	// And how long it has left to sound for, which is the rest of the clip.
+	slot->left = std::max(0.0, (double)c.length - std::max(0.0, into)) * 60.0 / bpm_ * sr;
 	slot->fade = 0.0;
 }
 
@@ -1351,6 +1495,10 @@ void Engine::render_block(float *outL, float *outR, int frames, bool advance) {
 		std::memset(t.scR.data(), 0, sizeof(float) * (size_t)frames);
 		t.has_sc = false;
 	}
+	// The machine's own input goes in first, so the track it lands on carries
+	// a voice exactly the way it carries a synth: through its inserts, its
+	// fader, and any send -- sidechain sends included.
+	pull_input(frames);
 
 	const double bps = bpm_ / 60.0 / sr;
 	const double b0 = beat_;
@@ -1439,7 +1587,7 @@ void Engine::render_block(float *outL, float *outR, int frames, bool advance) {
 		const float fade_step = 1.0f / std::max(1.0f, (float)(sr * 0.002));
 		for (int i = 0; i < frames; i++) {
 			const int i0 = (int)v.pos;
-			if (i0 < 0 || i0 + 1 >= fr || v.pos >= v.end_pos) { v.active = false; break; }
+			if (i0 < 0 || i0 + 1 >= fr || v.left <= 0.0) { v.active = false; break; }
 			const float frac = (float)(v.pos - (double)i0);
 			const float l = lerp(f.data[(size_t)i0 * f.channels], f.data[(size_t)(i0 + 1) * f.channels], frac);
 			const float r = f.channels > 1
@@ -1456,6 +1604,7 @@ void Engine::render_block(float *outL, float *outR, int frames, bool advance) {
 			t.L[(size_t)i] += l * amp * pl;
 			t.R[(size_t)i] += r * amp * pr;
 			v.pos += v.inc;
+			v.left -= 1.0;
 		}
 	}
 
@@ -1618,6 +1767,10 @@ bool Engine::render(const std::string &path, double start_beat, double end_beat,
 	const double was_beat = beat_;
 	const bool was_loop = loop_on_;
 	const int was_mode = mode_;
+	const bool was_offline = offline_;
+	// Nothing is coming in off the machine's input during a render, and what
+	// is in the ring belongs to the audio thread that is still playing.
+	offline_ = true;
 	loop_on_ = false;
 	playing_ = true;
 	beat_ = start_beat;
@@ -1707,6 +1860,7 @@ bool Engine::render(const std::string &path, double start_beat, double end_beat,
 	beat_ = was_beat;
 	loop_on_ = was_loop;
 	mode_ = was_mode;
+	offline_ = was_offline;
 	if (progress) *progress = 1.0f;
 	return wav_save(path, out.data(), (int)written, 2, (int)sr, bits);
 }

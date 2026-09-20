@@ -961,6 +961,10 @@ func _parse_args() -> void:
 			_run_shot()
 		elif arg.begins_with("--cd-audiotest"):
 			_run_audiotest()
+		elif arg.begins_with("--cd-inputtest"):
+			_run_inputtest(arg.substr(14).lstrip("="))
+		elif arg.begins_with("--cd-voicetest"):
+			_run_voicetest(arg.substr(14).lstrip("="))
 		elif arg.begins_with("--cd-lagtest="):
 			_run_lagtest(arg.substr(13))
 		elif arg.begins_with("--cd-selftest="):
@@ -1185,6 +1189,138 @@ func _run_audiotest() -> void:
 	get_tree().quit(0 if peak_master > 0.01 else 2)
 
 
+## The machine's own input, end to end: open it, put it on a strip, record a
+## take, and say what arrived and what became of it.
+##   --cd-inputtest[=<seconds>]
+func _run_inputtest(arg: String) -> void:
+	await _wait_for_app()
+	var secs := float(arg) if arg.is_valid_float() else 4.0
+	print("inputtest: devices %s" % str(Audio.input_devices()))
+	print("inputtest: device \"%s\"" % Audio.input_device())
+	App.set_input_track(1, true)
+	await get_tree().process_frame
+	print("inputtest: open=%s problem=%s engine track=%d" % [
+			Audio.input_on, Audio.input_problem, Audio.engine.input_track()])
+	if not Audio.input_on:
+		get_tree().quit(2)
+		return
+	# Muted, so a test run is silent however the machine is wired up.
+	App.set_mixer_prop(1, "mute", true)
+	App.set_mode(Cd.Mode.SONG)
+	App.set_recording(true)
+	Audio.play(true)
+	var peak := 0.0
+	var t := Time.get_ticks_msec()
+	var said := 0
+	while Time.get_ticks_msec() - t < int(secs * 1000.0):
+		await get_tree().process_frame
+		peak = maxf(peak, Audio.engine.input_peak())
+		var el := Time.get_ticks_msec() - t
+		if el / 1000 > said:
+			said = el / 1000
+			print("inputtest:  %ds  pushed %.2f s  take %.2f s  beat %.2f" % [said,
+					float(Audio.input_frames) / 48000.0, Audio.engine.take_seconds(),
+					Audio.position()])
+	print("inputtest: input peak %.4f  take %.2f s  armed=%s" % [
+			peak, Audio.engine.take_seconds(), Audio.engine.record_armed()])
+	Audio.stop()
+	for i in 10:
+		await get_tree().process_frame
+	App.set_recording(false)
+	var made := []
+	for c in App.project.clips:
+		if int(c.type) == Cd.ClipType.AUDIO:
+			made.append("%s at beat %.2f for %.2f (asset %d)" % [
+					String(c.get("name", "?")), float(c.start), float(c.length), int(c.index)])
+	print("inputtest: samples=%d clips=%s" % [App.project.assets.size(), str(made)])
+	for a in App.project.assets:
+		print("inputtest: take file %s" % String(a.get("path", "")))
+	get_tree().quit(0 if not made.is_empty() else 3)
+
+
+## A synth, a vocoder on it, and the machine's own input wired into the
+## vocoder's sidechain in one click -- which is the whole of what someone
+## wanting to sing through it has to do.
+##   --cd-voicetest[=<seconds>]
+func _run_voicetest(arg: String) -> void:
+	await _wait_for_app()
+	var secs := float(arg) if arg.is_valid_float() else 8.0
+	var idx: int = App.add_stock_channel("cd.ember")
+	App.set_channel_prop(idx, "mixer", 1)
+	for i in 6:
+		await get_tree().process_frame
+	# Silent: this is a measurement, not a performance.
+	App.set_mixer_prop(0, "vol", 0.0)
+	var hold := func():
+		for k in [40, 47, 52, 59]:
+			App.live_note_on(k, 0.85, "test")
+	var drop := func():
+		for k in [40, 47, 52, 59]:
+			App.live_note_off(k, "test")
+	hold.call()
+	print("voicetest: carrier alone -> strip1 %.4f (channel %.4f)"
+			% [await _watch_strip(1, 1.5), Audio.engine.channel_level(idx)])
+	drop.call()
+
+	App.set_insert(1, 0, CdProject.plugin_dict("stock", "cd.vocoder", "", "Vocoder"))
+	for i in 8:
+		await get_tree().process_frame
+	var voc: int = App.handle_for({"kind": "insert", "track": 1, "slot": 0})
+	hold.call()
+	print("voicetest: vocoder in, nothing speaking -> strip1 %.4f (handle %d, channel %.4f)"
+			% [await _watch_strip(1, 1.5), voc, Audio.engine.channel_level(idx)])
+	drop.call()
+
+	var input_strip := App.wire_input_to(1)
+	for i in 8:
+		await get_tree().process_frame
+	print("voicetest: input on strip %d, sidechain sources %s"
+			% [input_strip, str(App.sidechain_sources(1))])
+	if input_strip < 0:
+		get_tree().quit(2)
+		return
+	hold.call()
+	var master := 0.0
+	var chan := 0.0
+	var bands := 0.0
+	var modulator := 0.0
+	var inp := 0.0
+	var t := Time.get_ticks_msec()
+	var struck := -1
+	while Time.get_ticks_msec() - t < int(secs * 1000.0):
+		await get_tree().process_frame
+		# The stock patch is a stab, not a pad: struck again every half second
+		# so there is something for the voice to speak through.
+		var half := int((Time.get_ticks_msec() - t) / 500)
+		if half != struck:
+			struck = half
+			drop.call()
+			hold.call()
+		master = maxf(master, maxf(Audio.peak(1).x, Audio.peak(1).y))
+		chan = maxf(chan, Audio.engine.channel_level(idx))
+		var a2: PackedFloat32Array = Audio.engine.plugin_aux(voc, 0, 34)
+		for i in range(1, a2.size()):
+			bands = maxf(bands, a2[i])
+		var m: PackedFloat32Array = Audio.engine.plugin_aux(voc, 1, 1)
+		if m.size() > 0:
+			modulator = maxf(modulator, m[0])
+		inp = maxf(inp, Audio.engine.input_peak())
+	drop.call()
+	print("voicetest: input %.4f  modulator %.4f  loudest band %.3f  channel %.4f  strip1 %.4f"
+			% [inp, modulator, bands, chan, master])
+	get_tree().quit(0 if bands > 0.05 and master > 0.001 else 3)
+
+
+## The loudest strip 1 gets over a stretch of seconds.
+func _watch_strip(track: int, secs: float) -> float:
+	var peak := 0.0
+	var t := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t < int(secs * 1000.0):
+		await get_tree().process_frame
+		peak = maxf(peak, maxf(Audio.peak(track).x, Audio.peak(track).y))
+	return peak
+
+
 func _run_selftest(out_dir: String) -> void:
 	await _wait_for_app()
 	# A bare name means a folder of Cadmium's own rather than one in whatever
@@ -1220,6 +1356,9 @@ func _run_shot() -> void:
 	if _shot_view.begins_with("audioclip:"):
 		_shot_arg = _shot_view.substr(10)
 		_shot_view = "audioclip"
+	if _shot_view.begins_with("audiostretch:"):
+		_shot_arg = _shot_view.substr(13)
+		_shot_view = "audioclip_stretched"
 	if _shot_view.begins_with("audioscroll:"):
 		_shot_arg = _shot_view.substr(12)
 		_shot_view = "audioclip_scrolled"
@@ -1229,6 +1368,8 @@ func _run_shot() -> void:
 	if _shot_view.begins_with("prism:"):
 		_shot_arg = _shot_view.substr(6)
 		_shot_view = "prism"
+	if _shot_view.begins_with("vocoderwired"):
+		_shot_view = "vocoderwired"
 	if _shot_view.begins_with("stock:"):
 		_shot_arg = _shot_view.substr(6)
 		_shot_view = "stock"
@@ -1465,6 +1606,27 @@ func _run_shot() -> void:
 			open_plugin_window({"kind": "insert", "track": 1, "slot": 0})
 			for i in 30:
 				await get_tree().process_frame
+		"vocoderwired":
+			# The vocoder with its modulator wired the way its own panel wires
+			# it: one button, and the machine's input is on a muted strip
+			# feeding this one's sidechain.
+			tabs.current_tab = 2
+			App.select_mixer(1)
+			App.add_stock_channel("cd.ember")
+			App.set_channel_prop(0, "mixer", 1)
+			App.set_insert(1, 0, CdProject.plugin_dict("stock", "cd.vocoder", "", "Vocoder"))
+			for i in 8:
+				await get_tree().process_frame
+			open_plugin_window({"kind": "insert", "track": 1, "slot": 0})
+			for i in 10:
+				await get_tree().process_frame
+			App.wire_input_to(1)
+			for i in 180:
+				await get_tree().process_frame
+				if i % 20 == 0:
+					for k in [40, 47, 52, 59]:
+						App.live_note_off(k, "shot")
+						App.live_note_on(k, 0.85, "shot")
 		"stockplay":
 			# The same, with something going through it, so the displays that
 			# read the plugin's own output have an output to read.
@@ -1517,6 +1679,26 @@ func _run_shot() -> void:
 			# A real audio clip on the playlist, so the waveform can be seen.
 			tabs.current_tab = 0
 			playlist.add_audio_clip(_shot_arg, 0, 0.0)
+			for i in 10:
+				await get_tree().process_frame
+		"audioclip_stretched":
+			# The same file three times: as long as it is, dragged out to twice
+			# that, and played at double speed. A clip is a stretch of the
+			# arrangement and the sample under it runs at its own rate, so all
+			# three have to draw the audio at the same scale and stop where the
+			# audio stops.
+			tabs.current_tab = 0
+			playlist.add_audio_clip(_shot_arg, 0, 0.0)
+			for i in 6:
+				await get_tree().process_frame
+			var natural: float = float(App.project.clips[0].length)
+			playlist.add_audio_clip(_shot_arg, 1, 0.0)
+			playlist.add_audio_clip(_shot_arg, 2, 0.0)
+			for i in 6:
+				await get_tree().process_frame
+			App.update_clip(1, {"length": natural * 2.0})
+			App.update_clip(2, {"length": natural * 0.5})
+			App.clip_edit_done()
 			for i in 10:
 				await get_tree().process_frame
 		"audioclip_scrolled":

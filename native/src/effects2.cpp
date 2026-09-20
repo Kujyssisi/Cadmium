@@ -809,25 +809,110 @@ static Plug *make_pitch() { return new PitchShift(); }
 // ===========================================================================
 // Vocoder — the sidechain speaks, the track carries
 // ===========================================================================
-enum { VO_BANDS, VO_ATTACK, VO_RELEASE, VO_FORMANT, VO_HISS, VO_MIX, VO_COUNT };
+/// A ceiling that does not sound like one. The bank's gain rides on where the
+/// carrier's energy happens to be, so a transient can ask for more than full
+/// scale; this leaves anything under about -3 dB alone and leans on the rest.
+static inline float voc_soft(float x) {
+	const float a = std::fabs(x);
+	if (a <= 0.7f) return x;
+	const float s = x < 0.0f ? -1.0f : 1.0f;
+	return s * (0.7f + (1.0f - std::exp(-(a - 0.7f) * 2.2f)) * 0.45f);
+}
+
+/// A band pair: two bandpasses in series, so a band is steep enough to be a
+/// band. One of them is what the first version had, and sixteen overlapping
+/// single humps do not spell anything -- every band hears most of its
+/// neighbours, the envelopes all move together, and what comes out is the
+/// carrier with a slow wobble on it rather than a voice.
+struct VocBand {
+	Biquad a, b;
+	inline float operator()(float x) { return b(a(x)); }
+	void set(double sr, float hz, float q) {
+		a.band_pass(sr, hz, q);
+		// Coefficients only: copying the whole filter would copy its state as
+		// well, and a filter restarted every block is a click every block.
+		b.b0 = a.b0; b.b1 = a.b1; b.b2 = a.b2; b.a1 = a.a1; b.a2 = a.a2;
+	}
+	void reset() { a.reset(); b.reset(); }
+};
+
+enum { VO_BANDS, VO_ATTACK, VO_RELEASE, VO_FORMANT, VO_HISS, VO_MIX,
+		VO_LEVEL, VO_LOW, VO_HIGH, VO_Q, VO_FREEZE, VO_COUNT };
 
 class Vocoder : public Plug {
 public:
-	static const int MAXB = 24;
-	Biquad mod_f[MAXB][2], car_f[MAXB][2];
-	float env[MAXB] = {0};
+	static const int MAXB = 32;
+
+	VocBand mod_f[MAXB];             ///< the voice, which is summed to mono
+	VocBand car_f[MAXB][2];          ///< the carrier, which keeps its sides
+	float env[MAXB] = {0};           ///< the voice's level in each band
+	float cenv[MAXB] = {0};          ///< the carrier's, for normalising it
+	float show[MAXB] = {0};          ///< what the panel draws, in its own time
+	/// Sibilance: how much of the voice is up where consonants live.
+	Biquad sib_hp, sib_lp;
+	float sib_hi = 0.0f, sib_lo = 0.0f;
+	float mod_rms = 0.0f, out_rms = 0.0f;
+	/// The carrier's overall level, which is what a band's level is judged
+	/// against before it is normalised.
+	float car_all = 0.0f;
+
 	std::vector<float> sc_l, sc_r;
 	bool has_sc = false;
+	float sc_level = 0.0f;           ///< how loud the modulator was last block
+	/// Whether anything is wired to the modulator at all, as opposed to wired
+	/// and quiet. Set when a block of sidechain arrives and let down slowly, so
+	/// the panel can tell "nothing is speaking into this" from "say something".
+	float sc_seen = 0.0f;
 	Rng rng;
 
-	// what 0: how many bands, then that many band levels 0..1.
+	// What the coefficients were worked out for, so they are worked out again
+	// only when one of them moves rather than on every block.
+	int f_bands = 0;
+	float f_shift = 0.0f, f_lo = 0.0f, f_hi = 0.0f, f_q = 0.0f;
+	double f_sr = 0.0;
+
+	void prepare() override {
+		for (int b = 0; b < MAXB; b++) {
+			mod_f[b].reset();
+			car_f[b][0].reset();
+			car_f[b][1].reset();
+			env[b] = cenv[b] = show[b] = 0.0f;
+		}
+		sib_hp.reset();
+		sib_lp.reset();
+		f_bands = 0;
+		f_sr = 0.0;
+		mod_rms = out_rms = sc_level = sc_seen = car_all = 0.0f;
+		sib_hi = sib_lo = 0.0f;
+	}
+
+	void reset() override { prepare(); }
+
+	int bands() const { return std::max(4, std::min(MAXB, pi(VO_BANDS))); }
+
+	/// The centre of band `b`, spread evenly in pitch between the two ends.
+	float centre(int b, int n) const {
+		const float lo = std::min(p(VO_LOW), p(VO_HIGH) * 0.5f);
+		const float hi = std::max(p(VO_HIGH), lo * 2.0f);
+		const float t = n > 1 ? (float)b / (float)(n - 1) : 0.0f;
+		return lo * std::pow(hi / lo, t);
+	}
+
+	/// what 0: how many bands, then each band's level 0..1 -- the voice as the
+	/// vocoder hears it, which is the whole of what the panel has to show.
+	/// what 1: one number, how much modulator is arriving at all.
 	int aux(int what, float *o, int max) override {
+		if (what == 1) {
+			if (max < 1) return 0;
+			o[0] = sc_seen > 0.05f ? std::min(1.0f, sc_level * 4.0f) : -1.0f;
+			return 1;
+		}
 		if (what != 0) return 0;
-		const int bands = std::max(4, std::min(MAXB, pi(VO_BANDS)));
-		if (max < bands + 1) return 0;
-		o[0] = (float)bands;
-		for (int b = 0; b < bands; b++) o[b + 1] = std::min(1.0f, env[b] * 4.0f);
-		return bands + 1;
+		const int n = bands();
+		if (max < n + 1) return 0;
+		o[0] = (float)n;
+		for (int b = 0; b < n; b++) o[b + 1] = std::min(1.0f, show[b]);
+		return n + 1;
 	}
 
 	bool wants_sidechain() const override { return true; }
@@ -836,35 +921,150 @@ public:
 		std::memcpy(sc_l.data(), l, sizeof(float) * (size_t)n);
 		std::memcpy(sc_r.data(), r, sizeof(float) * (size_t)n);
 		has_sc = true;
+		sc_seen = 1.0f;
 	}
+
+	void retune() {
+		const int n = bands();
+		const float shift = std::pow(2.0f, p(VO_FORMANT) / 12.0f);
+		const float q = std::max(0.5f, p(VO_Q));
+		if (n == f_bands && shift == f_shift && p(VO_LOW) == f_lo && p(VO_HIGH) == f_hi
+				&& q == f_q && sr == f_sr) {
+			return;
+		}
+		f_bands = n; f_shift = shift; f_lo = p(VO_LOW); f_hi = p(VO_HIGH); f_q = q; f_sr = sr;
+		// Narrow enough to tell one band from the next, and no narrower: a
+		// band much tighter than the spacing rings, and a band much wider than
+		// it is not a band. This is the spacing in octaves, turned into a Q.
+		const float span = std::log2(std::max(1.01f, f_hi / f_lo));
+		const float oct = span / std::max(1.0f, (float)(n - 1));
+		const float bw_q = 1.0f / std::max(0.05f, (std::pow(2.0f, oct) - 1.0f)
+				/ std::pow(2.0f, oct * 0.5f));
+		const float qq = clampf(bw_q * q, 0.5f, 40.0f);
+		for (int b = 0; b < n; b++) {
+			const float f = centre(b, n);
+			mod_f[b].set(sr, clampf(f, 20.0f, (float)sr * 0.45f), qq);
+			const float cf = clampf(f * shift, 20.0f, (float)sr * 0.45f);
+			car_f[b][0].set(sr, cf, qq);
+			car_f[b][1].set(sr, cf, qq);
+		}
+		sib_hp.high_pass(sr, 3500.0f, 0.7f);
+		sib_lp.low_pass(sr, 1000.0f, 0.7f);
+	}
+
 	void process(float *L, float *R, int n) override {
-		const int bands = std::max(4, std::min(MAXB, pi(VO_BANDS)));
+		retune();
+		const int nb = bands();
 		const float atk = 1.0f - std::exp(-1.0f / (float)(sr * std::max(0.0005f, p(VO_ATTACK) * 0.001f)));
 		const float rel = 1.0f - std::exp(-1.0f / (float)(sr * std::max(0.001f, p(VO_RELEASE) * 0.001f)));
-		const float shift = std::pow(2.0f, p(VO_FORMANT) / 12.0f);
-		const float mix = p(VO_MIX), hiss = p(VO_HISS);
-		for (int b = 0; b < bands; b++) {
-			const float t = (float)b / (float)(bands - 1);
-			const float f = 110.0f * std::pow(7500.0f / 110.0f, t);
-			const float q = 4.0f;
-			mod_f[b][0].band_pass(sr, f, q);
-			mod_f[b][1] = mod_f[b][0];
-			car_f[b][0].band_pass(sr, clampf(f * shift, 40.0f, (float)sr * 0.45f), q);
-			car_f[b][1] = car_f[b][0];
+		// The carrier's own envelope follows quickly in both directions: it is
+		// there to be divided out, not to shape anything.
+		const float catk = 1.0f - std::exp(-1.0f / (float)(sr * 0.003));
+		const float mix = p(VO_MIX);
+		const float hiss = p(VO_HISS);
+		const float level = std::pow(10.0f, p(VO_LEVEL) / 20.0f);
+		const bool freeze = pb(VO_FREEZE);
+		// Where the consonants go. Everything above about 2 kHz in a voice is
+		// noise rather than pitch, and that is the half of the bank that gets
+		// noise mixed into its carrier.
+		int split = nb;
+		for (int b = 0; b < nb; b++) {
+			if (centre(b, nb) >= 1800.0f) { split = b; break; }
 		}
-		if (!has_sc) { return; }
+
+		// Nothing speaking into it: the track goes through untouched rather
+		// than being silently replaced by nothing. Freeze holds the last thing
+		// said, which is what makes a vocoder playable from the keyboard alone.
+		if (!has_sc && !freeze) {
+			for (int b = 0; b < nb; b++) show[b] *= 0.92f;
+			sc_level *= 0.9f;
+			sc_seen *= 0.97f;
+			return;
+		}
+
+		float sc_peak = 0.0f;
 		for (int s = 0; s < n; s++) {
-			const float m = ((sc_l.empty() ? 0.0f : sc_l[(size_t)s]) + (sc_r.empty() ? 0.0f : sc_r[(size_t)s])) * 0.5f;
-			const float c = (L[s] + R[s]) * 0.5f + rng.bi() * hiss * 0.1f;
-			float outv = 0.0f;
-			for (int b = 0; b < bands; b++) {
-				const float mb = mod_f[b][0](m);
-				const float a = std::fabs(mb);
-				env[b] += (a - env[b]) * (a > env[b] ? atk : rel);
-				outv += car_f[b][0](c) * env[b] * 3.0f;
+			const float m = (freeze || sc_l.empty()) ? 0.0f
+					: (sc_l[(size_t)s] + sc_r[(size_t)s]) * 0.5f;
+			sc_peak = std::max(sc_peak, std::fabs(m));
+			// Consonants are noise, not pitch: a vocoder that passes only the
+			// carrier through has no way to say an "s" or a "t". Their share
+			// of the voice is measured here and spent on noise below.
+			if (!freeze) {
+				const float hi = std::fabs(sib_hp(m));
+				const float lo = std::fabs(sib_lp(m));
+				sib_hi += (hi - sib_hi) * 0.002f;
+				sib_lo += (lo - sib_lo) * 0.002f;
 			}
-			L[s] = lerp(L[s], outv, mix);
-			R[s] = lerp(R[s], outv, mix);
+			const float unvoiced = clampf(sib_hi / (sib_lo + 0.0006f) - 0.4f, 0.0f, 1.0f);
+
+			const float cl = L[s], cr = R[s];
+			car_all += ((std::fabs(cl) + std::fabs(cr)) * 0.5f - car_all) * catk;
+			// Bands a long way under the carrier's own level are not boosted
+			// any further: without a floor, a band the carrier has nothing in
+			// becomes a gain of ten thousand on its own noise.
+			const float floor_c = std::max(2.0e-4f, car_all * 0.02f);
+			const float nz = unvoiced * hiss * car_all * 3.0f;
+
+			float ol = 0.0f, orr = 0.0f;
+			for (int b = 0; b < nb; b++) {
+				if (!freeze) {
+					const float a = std::fabs(mod_f[b](m));
+					env[b] += (a - env[b]) * (a > env[b] ? atk : rel);
+				}
+				// Noise into the carrier, but only up where consonants live,
+				// and only while the voice is making one. The bank normalises
+				// it along with everything else, so an "s" comes out at the
+				// level the "s" went in at.
+				float src_l = cl, src_r = cr;
+				if (b >= split && nz > 1e-6f) {
+					src_l += rng.bi() * nz;
+					src_r += rng.bi() * nz;
+				}
+				const float bl = car_f[b][0](src_l);
+				const float br = car_f[b][1](src_r);
+				// The carrier's own level in this band, taken out of it. This
+				// is what makes a vocoder loud and intelligible whatever is
+				// carrying it: without it the output is the product of two
+				// small numbers, sits twenty decibels under everything else,
+				// and is the "it does nothing" everyone hears first. What is
+				// left is the carrier's shape at the voice's level.
+				const float ca = (std::fabs(bl) + std::fabs(br)) * 0.5f;
+				cenv[b] += (ca - cenv[b]) * catk;
+				const float g = env[b] / std::max(cenv[b], floor_c);
+				ol += bl * g;
+				orr += br * g;
+			}
+			ol *= level;
+			orr *= level;
+			// Loud is not the same as right. The bank's total gain still
+			// depends on how the carrier happens to be spread across it, so
+			// the last step puts the output back to the level the voice came
+			// in at -- gently, and only within a couple of stops either way.
+			const float om = (ol + orr) * 0.5f;
+			mod_rms += (m * m - mod_rms) * 0.0004f;
+			out_rms += (om * om - out_rms) * 0.0004f;
+			const float trim = clampf(std::sqrt((mod_rms + 1e-9f) / (out_rms + 1e-9f)), 0.35f, 3.0f);
+			ol = voc_soft(ol * trim);
+			orr = voc_soft(orr * trim);
+			L[s] = lerp(cl, ol, mix);
+			R[s] = lerp(cr, orr, mix);
+		}
+		sc_level = std::max(sc_peak, sc_level * 0.85f);
+		sc_seen = 1.0f;
+		// The panel's numbers: each band against the loudest one, so the shape
+		// of a vowel is legible, scaled by how loud the voice is overall, so
+		// silence reads as silence rather than as whatever the noise floor
+		// happens to be shaped like. Held up and let down slowly, or sixteen
+		// bars at thirty frames a second is a flicker rather than a voice.
+		float loudest = 0.0f;
+		for (int b = 0; b < nb; b++) loudest = std::max(loudest, env[b]);
+		const float overall = clampf((20.0f * std::log10(std::max(1e-5f, loudest)) + 55.0f)
+				/ 45.0f, 0.0f, 1.0f);
+		for (int b = 0; b < nb; b++) {
+			const float rel = 20.0f * std::log10(std::max(1e-5f, env[b] / (loudest + 1e-9f)));
+			const float want = clampf((rel + 30.0f) / 30.0f, 0.0f, 1.0f) * overall;
+			show[b] = want > show[b] ? want : show[b] + (want - show[b]) * 0.2f;
 		}
 		has_sc = false;
 	}
@@ -983,12 +1183,17 @@ void register_effects2(std::vector<PlugDesc> &out) {
 	}, make_pitch});
 
 	out.push_back({"cd.vocoder", "Vocoder", "Cadmium", "Filter", false, UI_VOCODER, {
-		{"bands", "Bands", 4, 24, 16, P_SEMI, "Vocode", nullptr, 1},
-		{"attack", "Attack", 0.5f, 100, 4, P_MS, "Vocode", nullptr, 0.3f},
-		{"release", "Release", 1, 500, 40, P_MS, "Vocode", nullptr, 0.3f},
+		{"bands", "Bands", 4, 32, 20, P_SEMI, "Vocode", nullptr, 1},
+		{"attack", "Attack", 0.5f, 100, 3, P_MS, "Vocode", nullptr, 0.3f},
+		{"release", "Release", 1, 500, 24, P_MS, "Vocode", nullptr, 0.3f},
 		{"formant", "Formant", -12, 12, 0, P_SEMI, "Vocode", nullptr, 1},
-		{"hiss", "Hiss", 0, 1, 0.15f, P_PCT, "Vocode", nullptr, 1},
+		{"hiss", "Sibilance", 0, 1, 0.35f, P_PCT, "Vocode", nullptr, 1},
 		{"mix", "Mix", 0, 1, 1, P_PCT, "Output", nullptr, 1},
+		{"level", "Level", -24, 24, 0, P_DB, "Output", nullptr, 1},
+		{"low", "Low", 60, 800, 120, P_HZ, "Bands", nullptr, 0.3f},
+		{"high", "High", 2000, 16000, 8000, P_HZ, "Bands", nullptr, 0.3f},
+		{"q", "Width", 0.5f, 3, 1, P_PCT, "Bands", nullptr, 1},
+		{"freeze", "Freeze", 0, 1, 0, P_BOOL, "Vocode", nullptr, 1},
 	}, make_vocoder});
 }
 

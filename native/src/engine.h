@@ -8,6 +8,8 @@
 #include "plugin.h"
 #include "wav.h"
 
+#include <atomic>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -191,7 +193,12 @@ struct AudioVoice {
 	float pan = 0.0f;
 	bool active = false;
 	int asset = -1;
-	double end_pos = 0.0;
+	/// Output frames this voice still has to sound for. A clip is a stretch
+	/// of the arrangement, so what decides when it stops is how long the clip
+	/// is -- not where in the file it has got to. Counting source frames
+	/// instead is why a sample played faster used to go quiet half way along
+	/// a clip that still drew its whole waveform.
+	double left = 0.0;
 	/// Above zero while the voice is ramping out. A stopped sample is faded
 	/// rather than cut, and a fading one is never restarted or re-pointed.
 	double fade = 0.0;
@@ -327,6 +334,33 @@ public:
 	/// next one.
 	void retrigger_at(double beat);
 
+	// --- live audio input
+	/// Frames off the machine's own input, handed over by the interface thread
+	/// a video frame at a time and read by the audio thread a block at a time.
+	/// Dropped rather than blocked if the two ever get badly out of step: a
+	/// microphone is worth a gap, never a stall in the audio callback.
+	void push_input(const float *l, const float *r, int n);
+	/// Which mixer track the input is heard on and how loud, or -1 for
+	/// nowhere. The track is fed before anything else is summed into it, so
+	/// its effects, its fader and its sends treat a voice like any other
+	/// signal -- which is what lets a sidechain send carry it to a vocoder.
+	void set_input(int track, float gain);
+	int input_track() const { return in_track_.load(std::memory_order_relaxed); }
+	float input_peak() const { return in_peak_; }
+	/// Arms the take: everything coming in from the next block on is kept
+	/// until this is turned off. take_start_beat() is where it began, taken on
+	/// the audio thread so it lines up with what was playing at the time.
+	void arm_record(bool on);
+	bool record_armed() const { return rec_on_.load(std::memory_order_relaxed); }
+	/// Moves what the audio thread has recorded into the take. Called from the
+	/// interface thread often enough that the ring between them never fills;
+	/// returns how many frames arrived.
+	int pump_take();
+	double take_seconds() const;
+	double take_start_beat() const { return rec_beat_.load(std::memory_order_relaxed); }
+	bool write_take(const std::string &path, int bits);
+	void clear_take();
+
 	// --- metering and visualisation
 	void meters(std::vector<float> &out) const;
 	/// The most recent master output, interleaved, newest last.
@@ -419,6 +453,9 @@ private:
 	void start_audio_clip(size_t ci, double into);
 	/// Audio clips the playhead is inside, started from where it has got to.
 	void start_audio_at(double beat);
+	/// A block's worth of the machine's input into its track, and into the
+	/// take if one is being recorded.
+	void pull_input(int frames);
 
 	std::vector<Channel> channels_;
 	std::vector<MixerTrack> mixer_;
@@ -456,6 +493,45 @@ private:
 	double metro_last_beat_ = -1.0;
 	float metro_env_ = 0.0f;
 	float metro_freq_ = 1000.0f;
+	// Live audio input. Two single-producer, single-consumer rings: the
+	// interface thread fills the first and the audio thread empties it, and
+	// the audio thread fills the second with the take while the interface
+	// thread empties that into a buffer it owns. Neither one ever makes the
+	// audio thread wait for the other.
+	static const uint64_t kInRing = 1u << 16;     ///< frames, a power of two
+	/// Held back before reading starts: enough that a slow video frame in the
+	/// interface costs latency rather than a hole, and little enough that
+	/// monitoring a voice is still monitoring rather than an echo.
+	static const uint64_t kInPrime = 2048;
+	/// And the most that is allowed to pile up. Past this the oldest frames go
+	/// rather than the latency growing for the rest of the session.
+	static const uint64_t kInMax = 16384;
+	static const uint64_t kRecRing = 1u << 19;    ///< interleaved floats
+	/// A take longer than this is a mistake rather than a performance.
+	static const size_t kTakeMax = (size_t)48000 * 2 * 60 * 30;
+	std::vector<float> in_l_, in_r_;
+	std::atomic<uint64_t> in_w_{0};
+	std::atomic<uint64_t> in_rd_{0};
+	bool in_primed_ = false;
+	std::atomic<int> in_track_{-1};
+	std::atomic<float> in_gain_{1.0f};
+	float in_peak_ = 0.0f;
+	std::vector<float> rec_ring_;
+	std::atomic<uint64_t> rec_w_{0};
+	/// The interface thread owns this, but the audio thread reads it to know
+	/// how much of the ring it is still allowed to write into.
+	std::atomic<uint64_t> rec_rd_{0};
+	std::atomic<bool> rec_on_{false};
+	/// Set when the take is armed and cleared by the first block that records,
+	/// which is the block that also writes down the beat it started on.
+	std::atomic<bool> rec_mark_{false};
+	std::atomic<double> rec_beat_{0.0};
+	/// The take itself, which only the interface thread touches.
+	std::vector<float> take_;
+	/// True while an offline render is running, which has no live input and
+	/// must not eat the one the audio thread is waiting for.
+	bool offline_ = false;
+
 	int next_handle_ = 1;
 	int next_note_id_ = 1;
 	float cpu_ = 0.0f;

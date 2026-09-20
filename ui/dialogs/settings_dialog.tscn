@@ -66,6 +66,32 @@ layout_mode = 2
 focus_mode = 0
 tooltip_text = "How often the interface redraws. Everything above about a hundred is work taken away from the audio thread and from plugin interfaces."
 
+[node name="InputRow" type="HBoxContainer" parent="Root/Tabs/General"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Root/Tabs/General/InputRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Audio input"
+
+[node name="Device" type="OptionButton" parent="Root/Tabs/General/InputRow"]
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "Which microphone or line in Cadmium records and monitors. It is only opened while a mixer strip is listening for it -- the I lamp on the strip."
+
+[node name="InputGainRow" type="HBoxContainer" parent="Root/Tabs/General"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Root/Tabs/General/InputGainRow"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+text = "Input gain"
+
+[node name="InputGain" type="OptionButton" parent="Root/Tabs/General/InputGainRow"]
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "How much the input is turned up on its way into the mixer."
+
 [node name="Midi" type="CheckBox" parent="Root/Tabs/General"]
 layout_mode = 2
 focus_mode = 0

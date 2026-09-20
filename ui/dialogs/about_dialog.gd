@@ -53,7 +53,7 @@ Z S X D C V G B H N J M  lower octave      Q 2 W 3 E R 5 T 6 Y 7 U  upper
 
 const ABOUT := """[b]Cadmium[/b] is a pattern-based digital audio workstation.
 
-Channel rack, piano roll, playlist, mixer with sends and sidechains, and a set of instruments and effects written for it: [b]Ember[/b] (subtractive), [b]Kilo FM[/b], [b]Vector[/b] (wavetable), [b]Pulse[/b] (drums), [b]Pluck[/b], a sampler and a SoundFont player, plus EQ, dynamics, saturation, modulation, delay, reverb, convolution, pitch and vocoding.
+Channel rack, piano roll, playlist, mixer with sends, sidechains and audio input, and a set of instruments and effects written for it: [b]Ember[/b] (subtractive), [b]Kilo FM[/b], [b]Vector[/b] (wavetable), [b]Pulse[/b] (drums), [b]Pluck[/b], a sampler and a SoundFont player, plus EQ, dynamics, saturation, modulation, delay, reverb, convolution, pitch and vocoding.
 
 VST3 plugins are hosted for both instruments and effects.
 

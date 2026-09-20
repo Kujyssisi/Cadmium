@@ -1284,17 +1284,24 @@ func _draw_audio_preview(c: Dictionary, r: Rect2) -> void:
 	var asset := int(c.get("index", -1))
 	if asset < 0:
 		return
-	# Where in the file this clip starts and ends, as a fraction of the whole.
+	# The whole file in beats, where the clip starts in it, and how fast it is
+	# being read. A clip is a stretch of the arrangement and the sample under
+	# it runs at its own rate, so the two are only the same length when that
+	# rate is one. Drawing the file stretched to fit the clip -- which is what
+	# this used to do -- is a picture of a sound nobody is going to hear.
 	var total: float = maxf(0.001, App.asset_length_beats_by_index(asset))
-	var from: float = clampf(float(c.get("offset", 0.0)) / total, 0.0, 1.0)
-	var to: float = clampf((float(c.get("offset", 0.0)) + float(c.length)) / total, from, 1.0)
-	if to - from < 0.000001:
+	var off: float = float(c.get("offset", 0.0))
+	var rate: float = maxf(0.0001, App.clip_rate(c))
+	# As far along the clip as the sample reaches. Past that the clip is empty,
+	# which is drawn as empty rather than filled with a stretched waveform.
+	var sounded: float = App.clip_sounded_beats(c, total)
+	if sounded < 0.0001:
 		return
 
 	# The part of the clip on screen, in beats from the clip's own start.
 	var clip_x: float = _beat_to_x(float(c.start))
-	var b0: float = clampf((body.position.x - clip_x) / maxf(1.0, px_per_beat), 0.0, float(c.length))
-	var b1: float = clampf((body.end.x - clip_x) / maxf(1.0, px_per_beat), b0, float(c.length))
+	var b0: float = clampf((body.position.x - clip_x) / maxf(1.0, px_per_beat), 0.0, sounded)
+	var b1: float = clampf((body.end.x - clip_x) / maxf(1.0, px_per_beat), b0, sounded)
 	if b1 - b0 < 0.0001:
 		return
 
@@ -1306,17 +1313,27 @@ func _draw_audio_preview(c: Dictionary, r: Rect2) -> void:
 	# at a hundred and twenty with this drawing switched off.
 	var tile: float = maxf(0.25, b1 - b0)
 	var index: int = int(floor(b0 / tile))
-	var t_from: float = clampf(float(index - 1) * tile, 0.0, float(c.length))
-	var t_to: float = clampf(float(index + 2) * tile, t_from, float(c.length))
+	var t_from: float = clampf(float(index - 1) * tile, 0.0, sounded)
+	var t_to: float = clampf(float(index + 2) * tile, t_from, sounded)
 	if t_to - t_from < 0.0001:
 		return
 	var buckets: int = int(clampf((t_to - t_from) * px_per_beat, 8.0, 4096.0))
+	# Beats of the clip to a fraction of the file: where the clip starts in the
+	# sample, plus however much of the sample those beats get through.
 	var shape := _wave_shape(asset,
-			from + (to - from) * (t_from / maxf(0.0001, float(c.length))),
-			from + (to - from) * (t_to / maxf(0.0001, float(c.length))),
+			clampf((off + t_from * rate) / total, 0.0, 1.0),
+			clampf((off + t_to * rate) / total, 0.0, 1.0),
 			buckets, t_to - t_from)
 	if shape.is_empty():
 		return
+	# A clip dragged out past the end of its own sample: the line says where
+	# the sound stops, and after it there is nothing, because after it there is
+	# nothing to hear.
+	if sounded < float(c.length) - 0.001:
+		var ex: float = clip_x + sounded * px_per_beat
+		if ex > body.position.x and ex < body.end.x:
+			draw_line(Vector2(ex, body.position.y), Vector2(ex, body.end.y),
+					Color(0, 0, 0, 0.45), 1.0)
 
 	# A tile is three screenfuls wide, and drawing all of it put the waveform
 	# over the track headers and off the edge of the panel. Only the part that

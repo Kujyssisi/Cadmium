@@ -109,6 +109,13 @@ func _process(dt: float) -> void:
 	# is actually being driven and only while the song plays: a stopped song
 	# moves nothing, and a project with no automation in it costs nothing here.
 	var playing := Audio.playing()
+	# A take starts when the transport does and ends when it stops, so what
+	# was sung lines up with what it was sung over.
+	if playing != _was_playing:
+		if playing:
+			start_take()
+		else:
+			finish_take()
 	if not _auto_index.is_empty() and (playing or _was_playing):
 		_auto_clock += dt
 		# One more tick after the song stops, so anything showing where a lane
@@ -781,6 +788,9 @@ func push_mixer() -> void:
 			var plug = m.inserts[s]
 			if plug != null:
 				e.set_insert_flags(t, s, bool(plug.get("bypass", false)), float(plug.get("wet", 1.0)))
+	# Which strip is listening to the machine's input travels with the mixer:
+	# a project saved with a vocoder set up comes back set up.
+	push_input()
 
 
 func push_patterns() -> void:
@@ -1149,7 +1159,9 @@ func place_item(kind: String, index: int, track: int, beat: float,
 		"sample":
 			if index < 0 or index >= project.assets.size():
 				return -1
-			length = asset_length_beats_by_index(index)
+			# As long as the sample sounds for, which is shorter than the
+			# sample when it is being played faster than it was recorded.
+			length = asset_length_beats_by_index(index) / sample_rate_mul(index)
 			extra["name"] = String(project.assets[index].get("name", "audio"))
 		"automation":
 			if index < 0 or index >= project.automations.size():
@@ -1571,7 +1583,155 @@ func set_recording(on: bool) -> void:
 	_rec_open.clear()
 	if on:
 		snapshot("Record")
-	status.emit("Recording armed - play notes while the transport runs" if on else "Recording off")
+	# Arming record with a strip listening to the machine's input means a take
+	# as well as notes: the moment the transport rolls, what comes in is kept.
+	# Armed mid-song, it starts from here rather than waiting for the next pass.
+	if on:
+		start_take()
+	elif engine() != null and engine().record_armed():
+		finish_take()
+	var voice := input_track() >= 0
+	if on:
+		status.emit("Recording armed - press play%s" % (
+				", and whatever comes into %s is kept" % _track_name(input_track())
+				if voice else " and play notes while the transport runs"))
+	else:
+		status.emit("Recording off")
+
+
+# ---------------------------------------------------------------------------
+# The machine's own audio input
+# ---------------------------------------------------------------------------
+## Which mixer strip is listening to the input, or -1 for none. One at a time:
+## there is one input device, and a voice can only be in one place at once.
+func input_track() -> int:
+	for t in project.mixer.size():
+		if bool(project.mixer[t].get("input", false)):
+			return t
+	return -1
+
+
+func _track_name(t: int) -> String:
+	if t < 0 or t >= project.mixer.size():
+		return "nothing"
+	return String(project.mixer[t].get("name", "Insert %d" % t))
+
+
+## Points the input at one strip, or takes it off the one that has it. The
+## microphone is only held open while a strip is actually listening.
+func set_input_track(track: int, on: bool) -> void:
+	var was := input_track()
+	if on and track == was:
+		return
+	if not on and track != was:
+		return
+	for t in project.mixer.size():
+		project.mixer[t]["input"] = on and t == track
+	project.dirty = true
+	if not on and engine() != null and engine().record_armed():
+		finish_take()
+	push_input()
+	var want := input_track()
+	if on and want < 0:
+		status.emit("No audio input: %s" % Audio.input_problem)
+		mixer_changed.emit()
+		return
+	mixer_changed.emit()
+	if want >= 0:
+		status.emit("%s is listening to the input -- mute it to stop hearing yourself"
+				% _track_name(want))
+	else:
+		status.emit("Input off")
+
+
+## What the engine should be doing with the input, from what the project says:
+## the device open only while a strip is listening, and the engine pointed at
+## that strip. Called on load and whenever the arming moves.
+func push_input() -> void:
+	var e = engine()
+	if e == null:
+		return
+	var want := input_track()
+	if want >= 0 and not Audio.input_on:
+		if not Audio.set_input_enabled(true):
+			for t in project.mixer.size():
+				project.mixer[t]["input"] = false
+			want = -1
+	elif want < 0 and Audio.input_on:
+		Audio.set_input_enabled(false)
+	e.set_input(want, float(Settings.get_value("input_gain", 1.0)))
+
+
+## Begins a take, if one is wanted: record armed, a strip listening, and the
+## transport rolling. Called when the transport starts.
+func start_take() -> void:
+	var e = engine()
+	if e == null or not recording or input_track() < 0 or e.record_armed():
+		return
+	if not e.is_playing():
+		return
+	e.clear_take()
+	e.arm_record(true)
+	status.emit("Recording %s" % _track_name(input_track()))
+
+
+## Ends one: the audio goes to a file, the file becomes one of the project's
+## samples, and the sample goes on the timeline where it was played.
+func finish_take() -> void:
+	var e = engine()
+	if e == null or not e.record_armed():
+		return
+	var track := input_track()
+	var beat: float = e.take_start_beat()
+	e.arm_record(false)
+	e.pump_take()
+	var secs: float = e.take_seconds()
+	if secs < 0.1:
+		e.clear_take()
+		return
+	var dir := ProjectSettings.globalize_path(Audio.CACHE_DIR)
+	DirAccess.make_dir_recursive_absolute(dir)
+	var stamp := Time.get_datetime_string_from_system(false, true).replace(":", "-")
+	var path := dir.path_join("take_%s.wav" % stamp)
+	if not e.write_take(path, 24):
+		e.clear_take()
+		status.emit("The take could not be written to %s" % dir)
+		return
+	e.clear_take()
+	# One step to take back, and one rebuild of the panels rather than three.
+	begin_batch("Record audio")
+	var index := add_audio_asset(path)
+	if index < 0:
+		end_batch()
+		return
+	project.assets[index]["name"] = "Take %s" % stamp
+	# A take plays back through the strip it was recorded on, so whatever was
+	# on that strip while it was sung is still on it when it is played.
+	if track > 0:
+		set_sample_setting(index, "mixer", track)
+	var length := asset_length_beats_by_index(index)
+	var lane := _free_lane(beat, length)
+	add_clip(Cd.ClipType.AUDIO, index, lane, beat, length,
+			{"name": String(project.assets[index]["name"])})
+	end_batch()
+	sample_changed.emit(index)
+	status.emit("Recorded %.1f s onto %s" % [secs, String(project.tracks[lane].get("name", "a track"))])
+
+
+## A playlist track with nothing on it over the stretch a take needs, so a
+## second pass does not land on top of the first.
+func _free_lane(beat: float, length: float) -> int:
+	for t in project.tracks.size():
+		var clear := true
+		for c in project.clips:
+			if int(c.track) != t:
+				continue
+			if float(c.start) < beat + length and beat < float(c.start) + float(c.length):
+				clear = false
+				break
+		if clear:
+			return t
+	return 0
 
 
 # ---------------------------------------------------------------------------
@@ -2045,6 +2205,38 @@ func asset_length_beats(path: String) -> float:
 	return maxf(0.25, secs * project.bpm / 60.0)
 
 
+## How fast a sample is being played right now, as a multiplier: the pitch and
+## speed an automation lane can move, the way a record does it. What the
+## stretching modes do is worked into the audio itself and is already counted
+## in how long the sample is.
+func sample_rate_mul(index: int) -> float:
+	var live: Dictionary = sample_live(index)
+	return pow(2.0, float(live.pitch) / 12.0) * maxf(0.02, float(live.speed))
+
+
+## The same for one clip, with the clip's own pitch on top: beats of the file
+## per beat of the arrangement. A clip read twice as fast gets through twice as
+## much of its sample in the same stretch of the timeline, and the waveform
+## drawn on it has to say so -- otherwise the picture stretches to fill the
+## clip while the sound stops half way along it.
+func clip_rate(c: Dictionary) -> float:
+	return sample_rate_mul(int(c.get("index", -1))) \
+			* pow(2.0, float(c.get("pitch", 0.0)) / 12.0)
+
+
+## How much of a clip actually has audio under it, in beats from its start: the
+## whole clip, or as far as the sample reaches at the rate it is being read.
+## `total` is how long the whole sample is in beats, for callers that have
+## already asked -- the timeline asks for every clip it draws, every frame.
+func clip_sounded_beats(c: Dictionary, total: float = -1.0) -> float:
+	if total < 0.0:
+		total = asset_length_beats_by_index(int(c.get("index", -1)))
+	if total <= 0.0:
+		return 0.0
+	var left: float = maxf(0.0, total - float(c.get("offset", 0.0)))
+	return clampf(left / maxf(0.0001, clip_rate(c)), 0.0, float(c.get("length", 0.0)))
+
+
 # ---------------------------------------------------------------------------
 # Editing — mixer
 # ---------------------------------------------------------------------------
@@ -2081,6 +2273,97 @@ func set_send(track: int, index: int, dest: int, amount: float, pre: bool, sidec
 	engine().set_send(track, index, dest, amount, pre, sidechain)
 	note_tweak(Cd.AutoTarget.SEND, {}, track, index)
 	_emit(mixer_changed)
+
+
+## Every track feeding this one's sidechain input -- what a compressor's
+## external detector and a vocoder's modulator are actually reading.
+func sidechain_sources(dest: int) -> Array:
+	var out := []
+	for t in project.mixer.size():
+		for snd in project.mixer[t].sends:
+			if int(snd.dest) == dest and bool(snd.get("sidechain", false)) \
+					and float(snd.amount) > 0.0001:
+				out.append(t)
+				break
+	return out
+
+
+## Makes `from` feed `to`'s sidechain, reusing whatever send already points
+## that way and taking the first free one otherwise. Pre-fader on purpose: a
+## modulator is usually a track you have muted so you hear the vocoder rather
+## than the voice, and a post-fader send from a muted track carries nothing.
+func set_sidechain(from: int, to: int, on: bool = true) -> bool:
+	if from < 0 or to < 0 or from >= project.mixer.size() or to >= project.mixer.size():
+		return false
+	if from == to:
+		status.emit("A strip cannot feed its own sidechain")
+		return false
+	var sends: Array = project.mixer[from].sends
+	for i in sends.size():
+		var snd: Dictionary = sends[i]
+		if int(snd.dest) == to and bool(snd.get("sidechain", false)):
+			set_send(from, i, to if on else -1, 1.0 if on else 0.0, true, on)
+			return true
+	if not on:
+		return false
+	for i in sends.size():
+		if int(sends[i].dest) < 0:
+			set_send(from, i, to, 1.0, true, true)
+			return true
+	sends.append({"dest": -1, "amount": 0.0, "pre": false, "sidechain": false})
+	set_send(from, sends.size() - 1, to, 1.0, true, true)
+	return true
+
+
+## Everything a voice needs to reach a vocoder in one go: a strip listening to
+## the machine's input, muted so you do not hear yourself twice, feeding this
+## one's sidechain. Returns the strip the input landed on.
+func wire_input_to(dest: int) -> int:
+	var track := input_track()
+	if track < 0 and _free_strip(dest) < 0:
+		status.emit("No free mixer track to put the input on")
+		return -1
+	snapshot("Voice in")
+	if track < 0:
+		# A strip that is not carrying anything, so arming it costs nothing.
+		track = _free_strip(dest)
+		if String(project.mixer[track].name) == "Insert %d" % track:
+			project.mixer[track]["name"] = "Voice"
+			engine().set_mixer_name(track, "Voice")
+		set_input_track(track, true)
+		if input_track() != track:
+			return -1
+	# Muted, because what should be heard is the vocoder and not the voice.
+	set_mixer_prop(track, "mute", true)
+	set_sidechain(track, dest, true)
+	status.emit("%s is listening to your input and feeding the vocoder on %s"
+			% [_track_name(track), _track_name(dest)])
+	return track
+
+
+## A mixer track with nothing on it: no channels, no clips, no effects, and not
+## the one asking.
+func _free_strip(besides: int) -> int:
+	var used := {}
+	for c in project.channels:
+		used[int(c.mixer)] = true
+	for a in project.assets:
+		var m := int((a.get("sampler", {}) as Dictionary).get("mixer", -1))
+		if m >= 0:
+			used[m] = true
+	for t in range(1, project.mixer.size()):
+		if t == besides or used.has(t):
+			continue
+		var busy := false
+		for p in project.mixer[t].inserts:
+			if p != null:
+				busy = true
+		for snd in project.mixer[t].sends:
+			if int(snd.dest) >= 0:
+				busy = true
+		if not busy:
+			return t
+	return -1
 
 
 ## Another row in the arrangement. Twelve is where a new song starts, not where

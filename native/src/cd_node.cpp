@@ -18,6 +18,7 @@
 #include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/classes/node.hpp>
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/variant/packed_vector2_array.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <atomic>
@@ -794,6 +795,34 @@ public:
 	void note_off(int ch, int key) { eng->note_off(ch, key); }
 	void panic() { eng->panic(); }
 
+	// --- live audio input
+	/// A video frame's worth of the machine's input, exactly as Godot's
+	/// capture effect hands it over: one Vector2 per frame, left and right.
+	void push_input(const PackedVector2Array &frames) {
+		const int n = (int)frames.size();
+		if (n <= 0) return;
+		static thread_local std::vector<float> l, r;
+		if ((int)l.size() < n) { l.resize((size_t)n); r.resize((size_t)n); }
+		for (int i = 0; i < n; i++) {
+			const Vector2 v = frames[i];
+			l[(size_t)i] = v.x;
+			r[(size_t)i] = v.y;
+		}
+		eng->push_input(l.data(), r.data(), n);
+	}
+	void set_input(int track, double gain) { eng->set_input(track, (float)gain); }
+	int input_track() const { return eng->input_track(); }
+	double input_peak() const { return eng->input_peak(); }
+	void arm_record(bool on) { eng->arm_record(on); }
+	bool record_armed() const { return eng->record_armed(); }
+	int pump_take() { return eng->pump_take(); }
+	double take_seconds() const { return eng->take_seconds(); }
+	double take_start_beat() const { return eng->take_start_beat(); }
+	bool write_take(const String &path, int bits) {
+		return eng->write_take(path.utf8().get_data(), bits);
+	}
+	void clear_take() { eng->clear_take(); }
+
 	// --- visualisation
 	PackedFloat32Array scope(int frames) {
 		std::vector<float> v;
@@ -1156,6 +1185,18 @@ void CdEngine::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_audio", "index", "path"), &CdEngine::set_audio);
 	ClassDB::bind_method(D_METHOD("forget_audio"), &CdEngine::forget_audio);
 	ClassDB::bind_method(D_METHOD("song_length"), &CdEngine::song_length);
+
+	ClassDB::bind_method(D_METHOD("push_input", "frames"), &CdEngine::push_input);
+	ClassDB::bind_method(D_METHOD("set_input", "track", "gain"), &CdEngine::set_input);
+	ClassDB::bind_method(D_METHOD("input_track"), &CdEngine::input_track);
+	ClassDB::bind_method(D_METHOD("input_peak"), &CdEngine::input_peak);
+	ClassDB::bind_method(D_METHOD("arm_record", "on"), &CdEngine::arm_record);
+	ClassDB::bind_method(D_METHOD("record_armed"), &CdEngine::record_armed);
+	ClassDB::bind_method(D_METHOD("pump_take"), &CdEngine::pump_take);
+	ClassDB::bind_method(D_METHOD("take_seconds"), &CdEngine::take_seconds);
+	ClassDB::bind_method(D_METHOD("take_start_beat"), &CdEngine::take_start_beat);
+	ClassDB::bind_method(D_METHOD("write_take", "path", "bits"), &CdEngine::write_take);
+	ClassDB::bind_method(D_METHOD("clear_take"), &CdEngine::clear_take);
 
 	ClassDB::bind_method(D_METHOD("note_on", "channel", "key", "vel"), &CdEngine::note_on);
 	ClassDB::bind_method(D_METHOD("note_off", "channel", "key"), &CdEngine::note_off);

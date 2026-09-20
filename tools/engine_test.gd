@@ -51,7 +51,7 @@ func _initialize() -> void:
 	var clips := PackedFloat32Array([0.0, 0.0, 0.0, 0.0, 16.0, 0.0, 1.0, 0.0, 0.0])
 	eng.set_playlist(clips)
 
-	var out := "/tmp/claude-1000/-home-ion/02992e26-1166-46a8-82ca-1be7da36faa1/scratchpad/cadmium_test.wav"
+	var out := OS.get_user_data_dir().path_join("engine_test.wav")
 	var t0 := Time.get_ticks_msec()
 	var ok := eng.render(out, 0.0, 16.0, 2.0, 24, false)
 	var ms := Time.get_ticks_msec() - t0

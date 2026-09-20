@@ -94,6 +94,8 @@ func new_mixer_track(i: int) -> Dictionary:
 		"color": i,
 		"sends": sends,
 		"inserts": [null, null, null, null, null, null, null, null],
+		# True on the one strip that is listening to the machine's audio input.
+		"input": false,
 	}
 
 

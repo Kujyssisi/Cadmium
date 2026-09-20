@@ -14,6 +14,7 @@ var _selected := false
 @onready var _meter: CdMeter = $Col/Mid/Meter
 @onready var _mute: CdLed = $Col/Leds/Mute
 @onready var _solo: CdLed = $Col/Leds/Solo
+@onready var _in: CdLed = $Col/Leds/In
 @onready var _fx: Label = $Col/Fx
 
 
@@ -23,6 +24,10 @@ func _ready() -> void:
 	_meter.track = track
 	_mute.on_color = CdPalette.BAD
 	_solo.on_color = CdPalette.WARN
+	_in.on_color = CdPalette.BAD
+	# The master takes the whole mix; putting a microphone into it would put
+	# the microphone through every meter in the room.
+	_in.visible = track > 0
 
 	_name.pressed.connect(func():
 		selected_changed.emit(track)
@@ -40,6 +45,7 @@ func _ready() -> void:
 	_fader.menu_requested.connect(func(_at): _control_menu(true))
 	_mute.toggled_state.connect(func(on): App.set_mixer_prop(track, "mute", on, "Mute"))
 	_solo.toggled_state.connect(func(on): App.set_mixer_prop(track, "solo", on, "Solo"))
+	_in.toggled_state.connect(func(on): App.set_input_track(track, on))
 	refresh()
 
 
@@ -190,6 +196,10 @@ func refresh() -> void:
 	_pan.value = float(m.pan)
 	_mute.on = bool(m.mute)
 	_solo.on = bool(m.solo)
+	_in.on = bool(m.get("input", false))
+	_in.tooltip_text = ("Listening to the audio input -- click to stop, and mute the strip\n"
+			+ "to stop hearing yourself while a vocoder does") if _in.on \
+			else "Listen to the machine's audio input on this strip"
 	var used := 0
 	for p in m.inserts:
 		if p != null:

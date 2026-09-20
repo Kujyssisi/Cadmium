@@ -25,6 +25,9 @@ config/icon="res://icon.svg"
 [audio]
 
 driver/mix_rate=48000
+; A DAW that cannot record has half a transport. The device is only opened
+; when something actually asks to listen -- see Audio.set_input_enabled().
+driver/enable_input=true
 
 [autoload]
 

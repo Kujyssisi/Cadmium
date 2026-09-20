@@ -13,6 +13,9 @@ const SWATCHES := ["#e0483c", "#e8a33d", "#4a90d9", "#5fbf6f", "#b06fd0", "#d9d9
 ## Where the master ceiling can sit. Right at the top for people who want the
 ## last decibel, and lower for anyone mixing on headphones at night.
 const CEILINGS := [-0.1, -0.3, -1.0, -3.0, -6.0, -12.0]
+## How much the machine's audio input is turned up on its way in. A quiet
+## dynamic microphone wants a lot; an interface with a preamp in it wants none.
+const INPUT_GAINS := [0.0, 3.0, 6.0, 12.0, 18.0, 24.0, -6.0, -12.0]
 const SECOND_SWATCHES := ["#2f2f2f", "#454545", "#5a5a5a", "#3d444d", "#453f4d", "#3f4a42",
 	"#4d453d", "#6a6a6a"]
 
@@ -111,6 +114,37 @@ func _general() -> void:
 		Engine.max_fps = FRAME_RATES[i]
 		App.status.emit("Frame rate limit %s" % ("off" if FRAME_RATES[i] == 0
 				else str(FRAME_RATES[i]))))
+
+	# The machine's audio input: which device, and how much of it. The device
+	# is not opened here -- it is opened when a mixer strip asks for it -- so
+	# changing this while nothing is listening costs nothing.
+	var device: OptionButton = $Root/Tabs/General/InputRow/Device
+	var names := Audio.input_devices()
+	for n in names:
+		device.add_item(String(n))
+	var want := Audio.input_device()
+	if want.is_empty():
+		want = "Default"
+	for i in device.item_count:
+		if device.get_item_text(i) == want:
+			device.select(i)
+	if device.item_count == 0:
+		device.add_item("(no audio inputs found)")
+		device.disabled = true
+	Cd.compact(device, "OptionButton", 4.0)
+	device.item_selected.connect(func(i):
+		Audio.set_input_device(device.get_item_text(i))
+		App.status.emit("Audio input: %s" % device.get_item_text(i)))
+
+	var gain: OptionButton = $Root/Tabs/General/InputGainRow/InputGain
+	for db in INPUT_GAINS:
+		gain.add_item("%+.0f dB" % db if db != 0.0 else "0 dB")
+	_select(gain, INPUT_GAINS, Cd.gain_to_db(float(Settings.get_value("input_gain", 1.0))))
+	Cd.compact(gain, "OptionButton", 4.0)
+	gain.item_selected.connect(func(i):
+		Settings.set_value("input_gain", Cd.db_to_gain(INPUT_GAINS[i]))
+		App.push_input()
+		App.status.emit("Input gain %+.0f dB" % INPUT_GAINS[i]))
 
 	var midi: CheckBox = $Root/Tabs/General/Midi
 	midi.button_pressed = bool(Settings.get_value("midi_input", true))

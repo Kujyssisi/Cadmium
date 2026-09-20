@@ -1,8 +1,9 @@
 # Cadmium
 
 A digital audio workstation for Linux and Windows: channel rack, piano roll,
-playlist, mixer with sends and sidechains, a set of instruments and effects
-written for it, a SoundFont player, a sampler, and VST3 hosting.
+playlist, mixer with sends and sidechains, audio input and recording, a set of
+instruments and effects written for it, a SoundFont player, a sampler, and VST3
+hosting.
 
 ![Cadmium in song mode: the playlist with pattern clips, the channel rack underneath, the browser down the left](docs/img/playlist.png)
 
@@ -43,6 +44,10 @@ red, and it is user-settable (Preferences ▸ Appearance).
 - **Transport** — pattern mode loops the selected pattern, song mode plays the
   playlist. Record arms live input: play the typing keyboard or a MIDI keyboard
   while the transport runs and the notes land in the current pattern, snapped.
+  With a mixer strip listening to the machine's audio input, record also keeps
+  a **take**: the performance is written to a file, added to the project's
+  samples and dropped on the first free playlist track at the beat it started,
+  playing back through the strip it was sung into.
   Pressing play part-way through a held note plays that note with what is left
   of it, and muting a track or channel cuts what it is already playing rather
   than waiting for the note to end.
@@ -70,6 +75,11 @@ red, and it is user-settable (Preferences ▸ Appearance).
   routing destination per track (so busses are just tracks).
 - A send can feed the destination's **sidechain** instead of its audio, which is
   what the compressor's external detector and the vocoder's modulator read.
+- **Audio input** — the `I` lamp on a strip points the machine's microphone or
+  line in at it. The input goes in ahead of the strip's own effects, so it is
+  monitored through them, carried by its sends, and recorded by the transport.
+  The device and how much it is turned up are in Preferences ▸ General; it is
+  only opened while a strip is actually listening.
 - Per-slot bypass and dry/wet, meters with peak hold and a clip latch,
   solo/mute, and a topological processing order so a bus is always mixed after
   everything that feeds it.
@@ -127,8 +137,13 @@ below a frequency, goniometer and correlation), Exciter, Transient, Chorus,
 Flanger, Phaser, **Trance Gate** (sixteen steps you draw on, locked to the
 tempo, every step automatable), Delay (tempo-synced, ping-pong, ducking),
 Reverb (8-line FDN), Space (partitioned-FFT convolution, loads any impulse
-response), Filter, Auto Pan, Ring Mod / frequency shifter, Pitch Shift,
-Vocoder.
+response), Filter, Auto Pan, Ring Mod / frequency shifter, Pitch Shift, and the
+**Vocoder** — up to 32 bands, the carrier normalised band by band so what comes
+out is at the voice's own level whatever is carrying it, noise substituted in
+the upper bands for consonants, adjustable band range and width, formant shift,
+and freeze. Its panel wires its own modulator: pick a strip to speak from, or
+press *Use my microphone* and it puts the input on a muted strip and feeds it
+in.
 
 **VST3**
 
@@ -314,6 +329,12 @@ All of these take a real window; `--headless` uses the dummy renderer.
                           trips, undo, automation. Prints a pass/fail tally.
     --cd-audiotest        plays the demo through the real device and reports the
                           engine's master peak, Godot's bus peak, voices and CPU
+    --cd-inputtest[=<s>]  opens the machine's audio input, puts it on a strip,
+                          records a take and says what arrived and what became
+                          of it. Needs a real audio device
+    --cd-voicetest[=<s>]  a synth, a vocoder on it, and the input wired into the
+                          vocoder's sidechain in one call -- reports the input
+                          level, the band levels and what came out of the strip
     --cd-shot=<png>[,view]  screenshot; view is playlist|piano|mixer|scope|
                           plugin|fx|picker|layers|vst3|sf2, or demo_<view> to
                           build the demo first. piano:<pattern>[:<channel>]

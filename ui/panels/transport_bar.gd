@@ -303,6 +303,10 @@ func _on_record() -> void:
 	_recording = not _recording
 	_rec_btn.modulate = Color(1.5, 0.75, 0.7) if _recording else Color.WHITE
 	App.set_recording(_recording)
+	_rec_btn.tooltip_text = ("Recording %s as well as notes  (Ctrl+R)"
+			% String(App.project.mixer[App.input_track()].name)) \
+			if _recording and App.input_track() >= 0 \
+			else "Record notes into the current pattern, and whatever is coming into a listening strip as a take  (Ctrl+R)"
 
 
 func recording() -> bool:
