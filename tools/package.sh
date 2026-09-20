@@ -23,6 +23,23 @@ DIST="$HERE/dist"
 say() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die() { printf '\033[31merror: %s\033[0m\n' "$*" >&2; exit 1; }
 
+# The version the build reports is the version it was built as -- Help > About,
+# the crash reports and the update check all read the same project setting, so
+# it is stamped in for the export and put back afterwards, whatever happens.
+stamp_version() {
+	VERSION_WAS="$(sed -n 's/^config\/version="\(.*\)"$/\1/p' project.godot)"
+	[ -n "$VERSION_WAS" ] || die "project.godot has no config/version to stamp"
+	trap 'unstamp_version' EXIT INT TERM
+	sed -i "s|^config/version=\".*\"$|config/version=\"$VERSION\"|" project.godot
+	say "building as $VERSION (project.godot said $VERSION_WAS)"
+}
+
+unstamp_version() {
+	[ -n "${VERSION_WAS:-}" ] || return 0
+	sed -i "s|^config/version=\".*\"$|config/version=\"$VERSION_WAS\"|" project.godot
+	VERSION_WAS=""
+}
+
 command -v "$GODOT" >/dev/null || die "no Godot binary ($GODOT). Set GODOT_BIN."
 command -v scons  >/dev/null || die "scons is not installed"
 command -v zip    >/dev/null || die "zip is not installed"
@@ -189,6 +206,7 @@ build_linux_arm64() {
 
 target="${1:-}"
 [ -n "$target" ] || die "say which: linux | windows | linux-arm64 | all"
+stamp_version
 licences
 case "$target" in
 	linux)       build_linux ;;
@@ -208,5 +226,6 @@ case "$target" in
 	*) die "unknown target: $target" ;;
 esac
 
+unstamp_version
 say "done -- $DIST"
 ls -la "$DIST"

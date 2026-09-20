@@ -30,11 +30,11 @@ done
 command -v gh >/dev/null || die "gh is not installed"
 [ -d "$DIST" ] || die "no dist/ -- run tools/package.sh first"
 
-# --- what is actually in dist/
-mapfile -t zips < <(find "$DIST" -maxdepth 1 -name 'Cadmium-*.zip' | sort)
-[ "${#zips[@]}" -gt 0 ] || die "dist/ has no Cadmium-*.zip -- run tools/package.sh first"
+# --- what is actually in dist/: the zips, and the Windows installer beside them
+mapfile -t zips < <(find "$DIST" -maxdepth 1 \( -name 'Cadmium-*.zip' -o -name 'Cadmium-*-setup.exe' \) | sort)
+[ "${#zips[@]}" -gt 0 ] || die "dist/ has nothing to release -- run tools/package.sh first"
 
-# The version the zips carry, so a tag cannot disagree with its own artefacts.
+# The version the files carry, so a tag cannot disagree with its own artefacts.
 found=""
 for z in "${zips[@]}"; do
 	v="$(basename "$z")"
@@ -81,11 +81,25 @@ fi
 # is still writing, gets SIGPIPE, and the pipeline reports 141 -- so a file that
 # is present is reported missing, and only sometimes, because it is a race.
 for z in "${zips[@]}"; do
-	unzip -t "$z" >/dev/null 2>&1 || die "$(basename "$z") is corrupt"
-	listing="$(unzip -l "$z")"
-	for want in LICENSE.txt THIRD-PARTY-NOTICES.md THIRD-PARTY-GODOT.txt FluidR3_GM.sf2; do
-		grep -qF "$want" <<<"$listing" || warn "$(basename "$z") has no $want"
-	done
+	case "$z" in
+		*.exe)
+			# An installer is one file; what can be checked is that it is a
+			# Windows program and not a truncated one.
+			head -c 2 "$z" | grep -q 'MZ' || die "$(basename "$z") is not a Windows executable"
+			[ "$(stat -c %s "$z")" -gt 1048576 ] || die "$(basename "$z") is too small to be real"
+			;;
+		*)
+			unzip -t "$z" >/dev/null 2>&1 || die "$(basename "$z") is corrupt"
+			listing="$(unzip -l "$z")"
+			for want in LICENSE.txt THIRD-PARTY-NOTICES.md THIRD-PARTY-GODOT.txt FluidR3_GM.sf2; do
+				grep -qF "$want" <<<"$listing" || warn "$(basename "$z") has no $want"
+			done
+			case "$z" in
+				*linux*) grep -qF "install.sh" <<<"$listing" \
+					|| warn "$(basename "$z") has no install.sh" ;;
+			esac
+			;;
+	esac
 	printf '  %s  %s\n' "$(du -h "$z" | cut -f1)" "$(basename "$z")"
 done
 
@@ -108,8 +122,17 @@ trap 'rm -f "$notes_file"' EXIT
 		echo "- \`$(basename "$z")\` ($(du -h "$z" | cut -f1))"
 	done
 	echo
-	echo "Unzip and run. Everything travels in the folder: the engine library,"
-	echo "the General MIDI soundfont, the FLARE banks and the licences."
+	echo "**Windows:** run the `-setup.exe`. It installs per user, needs no"
+	echo "administrator, adds a Start Menu entry and a .cadmium association, and"
+	echo "puts an uninstaller in Settings > Apps."
+	echo
+	echo "**Linux:** unzip and run \`./install.sh\` for a menu entry, an icon and"
+	echo "the file association (\`--system\` for everyone, \`--uninstall\` to take it"
+	echo "off again), or just run \`Cadmium.x86_64\` out of the folder."
+	echo
+	echo "Everything travels with it: the engine library, the General MIDI"
+	echo "soundfont, the FLARE banks and the licences. Help > Check for Updates"
+	echo "will find the next release from inside the program."
 } > "$notes_file"
 
 say "about to release"

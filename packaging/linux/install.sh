@@ -41,6 +41,7 @@ if [ -f "$HERE/.install-prefix" ]; then
 	. "$HERE/.install-prefix"
 	DEST="${DEST:-$HERE}"
 elif [ -n "$prefix" ]; then
+	mode="prefix"
 	DEST="$prefix"; BIN="$prefix/bin"; SHARE="$prefix/share"
 elif [ "$mode" = "system" ]; then
 	DEST="/opt/cadmium"; BIN="/usr/local/bin"; SHARE="/usr/share"

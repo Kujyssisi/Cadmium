@@ -16,6 +16,16 @@ red, and it is user-settable (Preferences ▸ Appearance).
 
     ~/Cadmium/cadmium          # or `cadmium` on PATH, or the desktop entry
 
+**Installing a release.** Windows gets a `-setup.exe`: per user, no
+administrator, Start Menu entry, `.cadmium` association, and an uninstaller in
+Settings ▸ Apps. Linux gets `install.sh` inside the zip — `./install.sh` for
+yourself, `--system` for everyone, `--uninstall` to take it off again; it writes
+the desktop entry, the icon and the MIME type and records a manifest so the
+uninstaller removes exactly what it put down. `packaging/arch/PKGBUILD` is there
+for anyone who would rather have a package. **Help ▸ Check for Updates** asks
+github.com for the newest release and installs it over the running copy; it only
+goes out when you ask it to.
+
 ---
 
 ## What is in it
@@ -335,6 +345,10 @@ All of these take a real window; `--headless` uses the dummy renderer.
     --cd-voicetest[=<s>]  a synth, a vocoder on it, and the input wired into the
                           vocoder's sidechain in one call -- reports the input
                           level, the band levels and what came out of the strip
+    --cd-applyupdate=<archive>
+                          the second half of an update without the network:
+                          unpacks a release archive over this installation and
+                          hands over to the script that does the swap
     --cd-shot=<png>[,view]  screenshot; view is playlist|piano|mixer|scope|
                           plugin|fx|picker|layers|vst3|sf2, or demo_<view> to
                           build the demo first. piano:<pattern>[:<channel>]

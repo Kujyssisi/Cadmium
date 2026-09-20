@@ -196,6 +196,7 @@ func _build() -> void:
 	_addon_menu()
 	Addons.changed.connect(_addon_menu)
 	_menu($Frame/Root/MenuBar/Row/Help, [
+			["Check for Updates...", "updates"], [],
 			["Start Performance Log", "perf_log"], ["Open Performance Logs", "perf_folder"],
 			["Crash Reports...", "crashes"], [],
 			["Keyboard Shortcuts", "help"], ["About Cadmium", "about"]])
@@ -381,6 +382,8 @@ func _on_command(cmd: String) -> void:
 			_open_dialog(preload("res://ui/dialogs/settings_dialog.tscn"), {"page": 2})
 		"accent":
 			_open_dialog(preload("res://ui/dialogs/settings_dialog.tscn"), {"page": 1})
+		"updates":
+			_open_dialog(preload("res://ui/dialogs/update_dialog.tscn"))
 		"about", "help":
 			_open_dialog(preload("res://ui/dialogs/about_dialog.tscn"), {"help": cmd == "help"})
 		"undo":
@@ -965,6 +968,8 @@ func _parse_args() -> void:
 			_run_audiotest()
 		elif arg.begins_with("--cd-inputtest"):
 			_run_inputtest(arg.substr(14).lstrip("="))
+		elif arg.begins_with("--cd-applyupdate="):
+			_run_applyupdate(arg.substr(17))
 		elif arg.begins_with("--cd-voicetest"):
 			_run_voicetest(arg.substr(14).lstrip("="))
 		elif arg.begins_with("--cd-lagtest="):
@@ -1323,6 +1328,25 @@ func _watch_strip(track: int, secs: float) -> float:
 	return peak
 
 
+## The second half of an update, without the network: unpack a release archive
+## over this installation and hand over to the script that does the swap. The
+## first half -- asking github.com -- is what the update window does, and what
+## it says is checked by looking at it.
+##   --cd-applyupdate=<archive>
+func _run_applyupdate(archive: String) -> void:
+	await _wait_for_app()
+	var where: Dictionary = CdUpdate.installation()
+	print("applyupdate: kind=%d dir=%s" % [int(where.kind), String(where.dir)])
+	print("applyupdate: version=%s archive=%s" % [CdUpdate.current(), archive])
+	var failed: String = await CdUpdate.apply(get_tree(), archive)
+	if not failed.is_empty():
+		print("applyupdate: refused -- %s" % failed)
+		get_tree().quit(3)
+		return
+	print("applyupdate: handed over, quitting")
+	get_tree().quit(0)
+
+
 func _run_selftest(out_dir: String) -> void:
 	await _wait_for_app()
 	# A bare name means a folder of Cadmium's own rather than one in whatever
@@ -1351,6 +1375,9 @@ func _run_shot() -> void:
 		_shot_view = "dialog"
 		# A dialog is a window of its own and does not appear in a picture of
 		# this one. For a screenshot, and only then, they are drawn inside it.
+		get_tree().root.gui_embed_subwindows = true
+	if _shot_view.begins_with("updatecheck"):
+		_shot_view = "updatecheck"
 		get_tree().root.gui_embed_subwindows = true
 	if _shot_view.begins_with("prefs:"):
 		_shot_arg = _shot_view.substr(6)
@@ -1736,6 +1763,12 @@ func _run_shot() -> void:
 			# Any dialog, by command name, so the scenes can be looked at.
 			_on_command(_shot_arg)
 			for i in 12:
+				await get_tree().process_frame
+		"updatecheck":
+			# The update window with the answer in it rather than the question:
+			# it has to go out to github.com and come back first.
+			_open_dialog(preload("res://ui/dialogs/update_dialog.tscn"))
+			for i in 240:
 				await get_tree().process_frame
 		"prefs":
 			# One page of Preferences by number, so each tab can be looked at.

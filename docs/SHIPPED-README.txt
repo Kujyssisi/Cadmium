@@ -1,11 +1,35 @@
 Cadmium — digital audio workstation
 ===================================
 
-Run Cadmium.exe. Keep all three files in the same folder:
+Installing
+----------
+Windows: run Cadmium-<version>-windows-x86_64-setup.exe if you have it. It
+installs for you alone, needs no administrator, adds a Start Menu entry and a
+.cadmium file association, and puts an uninstaller in Settings > Apps. Out of
+this zip instead, run Cadmium.exe where it is.
 
-  Cadmium.exe                                     the application
+Linux: run ./install.sh. It installs into ~/.local with no root, or --system
+into /opt for everyone, and either way you get a menu entry, an icon and
+.cadmium files that open in Cadmium. To take it off again:
+
+  ~/.local/share/cadmium/uninstall.sh --uninstall
+
+Or skip all that and run Cadmium.x86_64 out of this folder.
+
+Either way, keep the files together -- the program, its .pck, the engine
+library, and the Content and Banks folders beside them:
+
+  Cadmium.exe / Cadmium.x86_64                    the application
   Cadmium.pck                                     its data
-  libcadmium.windows.template_release.x86_64.dll  the audio engine
+  libcadmium.*.dll / libcadmium.*.so              the audio engine
+  Content/                                        the General MIDI soundfont
+  Banks/                                          the FLARE presets
+
+Updates
+-------
+Help > Check for Updates asks github.com whether there is a newer release and,
+if there is, downloads it and installs it over this copy. Nothing is sent
+anywhere and it never checks on its own -- only when you ask it to.
 
 VST3
 ----

@@ -89,6 +89,8 @@ func _run() -> int:
 	await _live_edits()
 	_dialogs()
 	await _preferences()
+	_versions()
+	await _update_window()
 	await _bad_plugins()
 	await _crash_reports()
 	await _addons()
@@ -1477,6 +1479,72 @@ func _dialogs() -> void:
 			flush.append(name)
 	_check("every dialog uses it", checked > 0 and flush.is_empty(),
 			"%d windows, flush: %s" % [checked, ", ".join(flush) if not flush.is_empty() else "none"])
+
+
+## Comparing versions, which is the whole of whether an update is offered.
+## Getting this wrong in either direction is bad: too eager and it offers a
+## downgrade, too shy and nobody ever hears about a release.
+func _versions() -> void:
+	print("--- versions")
+	var cases := [
+		["2026.09.20", "2026.09.20", 0],
+		["2026.09.12", "2026.09.20", -1],
+		["2026.09.20", "2026.09.12", 1],
+		# Date parts are numbers, not text: 9 is before 10, and 2 before 12.
+		["2026.09.20", "2026.10.01", -1],
+		["2026.09.02", "2026.09.12", -1],
+		["1.2.0", "1.10.0", -1],
+		# A leading v and a missing tail are both the same version.
+		["v2026.09.20", "2026.09.20", 0],
+		["2026.09", "2026.09.0", 0],
+		# A release candidate is older than the release it is for.
+		["2026.09.20-rc1", "2026.09.20", -1],
+	]
+	var bad := []
+	for c in cases:
+		var got: int = CdUpdate.compare(String(c[0]), String(c[1]))
+		if got != int(c[2]):
+			bad.append("%s vs %s gave %d, wanted %d" % [c[0], c[1], got, c[2]])
+	_check("versions compare the way a person reads them", bad.is_empty(),
+			"%d cases%s" % [cases.size(), "" if bad.is_empty() else ": " + ", ".join(bad)])
+	# Running from source is not something to offer an update for.
+	var where: Dictionary = CdUpdate.installation()
+	_check("a source build knows it is one", int(where.kind) == CdUpdate.Kind.SOURCE,
+			"kind %d" % int(where.kind))
+	_check("and it reports the version the repository records",
+			not CdUpdate.current().is_empty(), CdUpdate.current())
+
+
+## Help ▸ Check for Updates opens, says what it is doing, and does not offer to
+## replace a source build. It really does ask github.com -- there is no point
+## testing a check against something that is not the thing being checked.
+func _update_window() -> void:
+	print("--- check for updates")
+	main._on_command("updates")
+	await _frames(10)
+	var dlg: Window = null
+	for c in main.get_children():
+		if c is Window and c.get_node_or_null("Root/Col/State") != null:
+			dlg = c
+	_check("the update window opens", dlg != null)
+	if dlg == null:
+		return
+	var state: Label = dlg.get_node("Root/Col/State")
+	_check("and says it is asking", not state.text.is_empty(), state.text)
+	# Up to twelve seconds for a round trip, then give up rather than hang the
+	# suite on somebody else's network.
+	var waited := 0
+	while state.text.begins_with("Asking") and waited < 720:
+		await _frames(1)
+		waited += 1
+	_check("and comes back with an answer", not state.text.begins_with("Asking"),
+			state.text.left(70))
+	var action: Button = dlg.get_node("Root/Col/Row/Action")
+	_check("a source build is never offered a download",
+			not action.visible or action.text != "Download and install",
+			"button: %s" % ("hidden" if not action.visible else action.text))
+	dlg.queue_free()
+	await _frames(4)
 
 
 ## Every page of Preferences has to have something on it.
