@@ -46,15 +46,40 @@ func _add() -> void:
 	fd.size = Vector2i(880, 600)
 	add_child(fd)
 	fd.dir_selected.connect(func(p):
-		var arr: Array = Settings.get_value(_key, [])
-		if not arr.has(p):
-			arr.append(p)
-			Settings.set_value(_key, arr)
-			_fill()
-			Plugins.catalog_changed.emit()
+		add_folder(String(p))
 		fd.queue_free())
 	fd.canceled.connect(func(): fd.queue_free())
 	fd.popup_centered()
+
+
+## Adding one, apart from the chooser that picked it -- so what the button does
+## is something a test can do too.
+func add_folder(path: String) -> bool:
+	if path.is_empty():
+		return false
+	var arr: Array = Settings.get_value(_key, [])
+	if arr.has(path):
+		return false
+	arr.append(path)
+	Settings.set_value(_key, arr)
+	_fill()
+	Plugins.catalog_changed.emit()
+	return true
+
+
+func remove_folder(path: String) -> bool:
+	var arr: Array = Settings.get_value(_key, [])
+	if not arr.has(path):
+		return false
+	arr.erase(path)
+	Settings.set_value(_key, arr)
+	_fill()
+	Plugins.catalog_changed.emit()
+	return true
+
+
+func folders() -> Array:
+	return Settings.get_value(_key, [])
 
 
 func _remove() -> void:
@@ -62,7 +87,4 @@ func _remove() -> void:
 	if sel.is_empty():
 		return
 	var arr: Array = Settings.get_value(_key, [])
-	arr.remove_at(sel[0])
-	Settings.set_value(_key, arr)
-	_fill()
-	Plugins.catalog_changed.emit()
+	remove_folder(String(arr[sel[0]]) if sel[0] < arr.size() else "")

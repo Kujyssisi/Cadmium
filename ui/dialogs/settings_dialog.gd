@@ -22,6 +22,10 @@ const SECOND_SWATCHES := ["#2f2f2f", "#454545", "#5a5a5a", "#3d444d", "#453f4d",
 @onready var _tabs: TabContainer = $Root/Tabs
 @onready var _devices: ItemList = $Root/Tabs/General/Devices
 @onready var _picker: ColorPickerButton = $Root/Tabs/Appearance/ColourRow/Picker
+## Held rather than looked up: the page it lives on is moved into a scroll of
+## its own once the dialog is built, and "Look again" rebuilds the list after
+## that has happened.
+var _addon_list: VBoxContainer = null
 
 
 func configure(args: Dictionary) -> void:
@@ -69,6 +73,13 @@ func _tidy_pages() -> void:
 		_tabs.move_child(scroll, i)
 		scroll.add_child(page)
 		page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# A TabContainer shows one child and hides the rest, so every page but
+		# the one open when the scene was saved is stored hidden. The scroll is
+		# the tab's child now and the page is a child of *that*, which nothing
+		# ever shows again -- so Add-ons, Folders and Audio came up as empty
+		# rectangles. The page is always visible; its scroll is what the tabs
+		# show and hide.
+		page.visible = true
 
 
 ## One column of labels, one of controls.
@@ -114,37 +125,6 @@ func _general() -> void:
 		Engine.max_fps = FRAME_RATES[i]
 		App.status.emit("Frame rate limit %s" % ("off" if FRAME_RATES[i] == 0
 				else str(FRAME_RATES[i]))))
-
-	# The machine's audio input: which device, and how much of it. The device
-	# is not opened here -- it is opened when a mixer strip asks for it -- so
-	# changing this while nothing is listening costs nothing.
-	var device: OptionButton = $Root/Tabs/General/InputRow/Device
-	var names := Audio.input_devices()
-	for n in names:
-		device.add_item(String(n))
-	var want := Audio.input_device()
-	if want.is_empty():
-		want = "Default"
-	for i in device.item_count:
-		if device.get_item_text(i) == want:
-			device.select(i)
-	if device.item_count == 0:
-		device.add_item("(no audio inputs found)")
-		device.disabled = true
-	Cd.compact(device, "OptionButton", 4.0)
-	device.item_selected.connect(func(i):
-		Audio.set_input_device(device.get_item_text(i))
-		App.status.emit("Audio input: %s" % device.get_item_text(i)))
-
-	var gain: OptionButton = $Root/Tabs/General/InputGainRow/InputGain
-	for db in INPUT_GAINS:
-		gain.add_item("%+.0f dB" % db if db != 0.0 else "0 dB")
-	_select(gain, INPUT_GAINS, Cd.gain_to_db(float(Settings.get_value("input_gain", 1.0))))
-	Cd.compact(gain, "OptionButton", 4.0)
-	gain.item_selected.connect(func(i):
-		Settings.set_value("input_gain", Cd.db_to_gain(INPUT_GAINS[i]))
-		App.push_input()
-		App.status.emit("Input gain %+.0f dB" % INPUT_GAINS[i]))
 
 	var midi: CheckBox = $Root/Tabs/General/Midi
 	midi.button_pressed = bool(Settings.get_value("midi_input", true))
@@ -263,9 +243,29 @@ func _appearance() -> void:
 
 
 ## One row per add-on: what it is called, what it does, and whether it is on.
+## The two buttons, wired once. The list itself is rebuilt by _fill_addons(),
+## which is also what "Look again" calls -- and by then the page has been moved
+## inside a scroll of its own, so nothing here may reach a node by path.
 func _addons() -> void:
-	var list: VBoxContainer = $"Root/Tabs/Add-ons/List"
+	_addon_list = $"Root/Tabs/Add-ons/List"
+	($"Root/Tabs/Add-ons/Row/Folder" as Button).pressed.connect(func():
+		var dir := ProjectSettings.globalize_path(Addons.USER_DIR)
+		DirAccess.make_dir_recursive_absolute(dir)
+		OS.shell_open(dir))
+	($"Root/Tabs/Add-ons/Row/Reload" as Button).pressed.connect(func():
+		Addons.reload()
+		_fill_addons()
+		App.status.emit("%d add-on%s" % [Addons.list.size(),
+				"" if Addons.list.size() == 1 else "s"]))
+	_fill_addons()
+
+
+func _fill_addons() -> void:
+	var list := _addon_list
+	if list == null or not is_instance_valid(list):
+		return
 	for c in list.get_children():
+		list.remove_child(c)
 		c.queue_free()
 	for e in Addons.list:
 		var box := VBoxContainer.new()
@@ -285,18 +285,10 @@ func _addons() -> void:
 		list.add_child(box)
 	if Addons.list.is_empty():
 		var none := Label.new()
-		none.text = "Nothing installed."
+		none.text = "Nothing installed yet. Drop a folder with an addon.gd in it into the add-ons folder below, then press Look again."
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		none.theme_type_variation = "MuteLabel"
 		list.add_child(none)
-	($"Root/Tabs/Add-ons/Row/Folder" as Button).pressed.connect(func():
-		var dir := ProjectSettings.globalize_path(Addons.USER_DIR)
-		DirAccess.make_dir_recursive_absolute(dir)
-		OS.shell_open(dir))
-	($"Root/Tabs/Add-ons/Row/Reload" as Button).pressed.connect(func():
-		Addons.reload()
-		_addons()
-		App.status.emit("%d add-on%s" % [Addons.list.size(),
-				"" if Addons.list.size() == 1 else "s"]))
 
 
 func _folders() -> void:
@@ -325,6 +317,37 @@ func _audio() -> void:
 	opt.item_selected.connect(func(i):
 		AudioServer.set_output_device(String(list[i]))
 		App.status.emit("Output device: %s" % list[i]))
+
+	# The machine's audio input: which device, and how much of it. The device
+	# is not opened here -- it is opened when a mixer strip asks for it -- so
+	# changing this while nothing is listening costs nothing.
+	var device: OptionButton = $Root/Tabs/Audio/InputRow/Device
+	var names := Audio.input_devices()
+	for n in names:
+		device.add_item(String(n))
+	var want := Audio.input_device()
+	if want.is_empty():
+		want = "Default"
+	for i in device.item_count:
+		if device.get_item_text(i) == want:
+			device.select(i)
+	if device.item_count == 0:
+		device.add_item("(no audio inputs found)")
+		device.disabled = true
+	Cd.compact(device, "OptionButton", 4.0)
+	device.item_selected.connect(func(i):
+		Audio.set_input_device(device.get_item_text(i))
+		App.status.emit("Audio input: %s" % device.get_item_text(i)))
+
+	var gain: OptionButton = $Root/Tabs/Audio/InputGainRow/InputGain
+	for db in INPUT_GAINS:
+		gain.add_item("%+.0f dB" % db if db != 0.0 else "0 dB")
+	_select(gain, INPUT_GAINS, Cd.gain_to_db(float(Settings.get_value("input_gain", 1.0))))
+	Cd.compact(gain, "OptionButton", 4.0)
+	gain.item_selected.connect(func(i):
+		Settings.set_value("input_gain", Cd.db_to_gain(INPUT_GAINS[i]))
+		App.push_input()
+		App.status.emit("Input gain %+.0f dB" % INPUT_GAINS[i]))
 
 	var scan: Button = $Root/Tabs/Audio/Rescan
 	scan.icon = Icons.get_icon("vst", 14)

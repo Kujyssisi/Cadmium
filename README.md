@@ -78,7 +78,7 @@ red, and it is user-settable (Preferences ▸ Appearance).
 - **Audio input** — the `I` lamp on a strip points the machine's microphone or
   line in at it. The input goes in ahead of the strip's own effects, so it is
   monitored through them, carried by its sends, and recorded by the transport.
-  The device and how much it is turned up are in Preferences ▸ General; it is
+  The device and how much it is turned up are in Preferences ▸ Audio; it is
   only opened while a strip is actually listening.
 - Per-slot bypass and dry/wet, meters with peak hold and a clip latch,
   solo/mute, and a topological processing order so a bus is always mixed after
@@ -340,7 +340,8 @@ All of these take a real window; `--headless` uses the dummy renderer.
                           build the demo first. piano:<pattern>[:<channel>]
                           photographs a particular one rather than whatever is
                           selected. vst3hold:<name> opens a hosted plugin's own
-                          editor and leaves it up to be captured.
+                          editor and leaves it up to be captured. prefs:<n>
+                          opens one page of Preferences by number.
     --cd-vsttest=<dir>[,filter[,skip]]
                           renders audio through every hosted plugin, opens its
                           own editor, reads back what it painted and saves it as

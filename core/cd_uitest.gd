@@ -88,6 +88,7 @@ func _run() -> int:
 	await _erase_drag()
 	await _live_edits()
 	_dialogs()
+	await _preferences()
 	await _bad_plugins()
 	await _crash_reports()
 	await _addons()
@@ -1476,6 +1477,78 @@ func _dialogs() -> void:
 			flush.append(name)
 	_check("every dialog uses it", checked > 0 and flush.is_empty(),
 			"%d windows, flush: %s" % [checked, ", ".join(flush) if not flush.is_empty() else "none"])
+
+
+## Every page of Preferences has to have something on it.
+##
+## A TabContainer stores every page but the open one hidden, and the dialog
+## moves each page into a scroll container of its own after it is built -- so
+## the page stops being the tab's own child and nothing turns it visible again.
+## Four of the five pages came up as empty rectangles, and the one for choosing
+## where VST3 plugins live was among them. Nothing about that looks like a
+## fault from the code: the nodes are all there, correctly filled in, and off
+## the screen.
+func _preferences() -> void:
+	print("--- preferences")
+	main._on_command("settings")
+	await _frames(12)
+	var dlg: Window = null
+	for w in tree.root.get_children():
+		if w is Window and String(w.title).to_lower().contains("preference"):
+			dlg = w
+	if dlg == null:
+		for c in main.get_children():
+			if c is Window and c.get_node_or_null("Root/Tabs") != null:
+				dlg = c
+	_check("Preferences opens", dlg != null)
+	if dlg == null:
+		return
+	var tabs: TabContainer = dlg.get_node("Root/Tabs")
+	_check("it has the five pages", tabs.get_tab_count() == 5,
+			"%d tabs" % tabs.get_tab_count())
+	for i in tabs.get_tab_count():
+		tabs.current_tab = i
+		await _frames(4)
+		var page: Control = tabs.get_tab_control(i)
+		# Past the scroll the dialog wraps each page in, to the page itself.
+		var body: Control = page
+		if page is ScrollContainer and page.get_child_count() > 0:
+			body = page.get_child(0)
+		var shown := 0
+		for c in body.get_children():
+			if c is Control and (c as Control).visible:
+				shown += 1
+		_check("%s has something on it" % tabs.get_tab_title(i),
+				body.visible and shown > 0 and body.size.y > 8.0,
+				"%d visible rows, %.0f px tall" % [shown, body.size.y])
+	# The Folders page is the only way to point Cadmium at a plugin folder it
+	# does not search by itself, so it gets a second look -- with that page
+	# open, since a page on a tab nobody is looking at is hidden on purpose.
+	tabs.current_tab = 3
+	await _frames(4)
+	var folders: Control = tabs.get_tab_control(3)
+	var vst3 = folders.find_child("Vst3", true, false)
+	_check("the VST3 folder list is there and visible",
+			vst3 != null and vst3.is_visible_in_tree())
+	if vst3 != null:
+		_check("with buttons to add and remove one",
+				vst3.get_node_or_null("Col/Row/Add") != null
+				and vst3.get_node_or_null("Col/Row/Remove") != null)
+		# And adding one has to reach the scanner, not just the list.
+		var was: Array = (vst3.folders() as Array).duplicate()
+		var mine := "/tmp/cadmium-uitest-vst3"
+		vst3.add_folder(mine)
+		await _frames(2)
+		_check("a folder added here is one the scan will look in",
+				Array(Plugins.vst3_dirs()).has(mine),
+				"%d folders" % Plugins.vst3_dirs().size())
+		vst3.remove_folder(mine)
+		await _frames(2)
+		_check("and taking it off puts it back as it was",
+				not Array(Plugins.vst3_dirs()).has(mine)
+				and (vst3.folders() as Array).size() == was.size())
+	dlg.queue_free()
+	await _frames(4)
 
 
 ## "Search all plugins..." at the bottom of the effect drop-down has to bring

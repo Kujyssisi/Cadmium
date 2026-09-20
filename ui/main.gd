@@ -376,7 +376,9 @@ func _on_command(cmd: String) -> void:
 		"fullscreen":
 			_toggle_full_screen()
 		"addons":
-			_open_dialog(preload("res://ui/dialogs/settings_dialog.tscn"), {"page": 4})
+			# General, Appearance, Add-ons, Folders, Audio -- Add-ons is 2.
+			# This said 4, so the Add-ons menu item opened the Audio page.
+			_open_dialog(preload("res://ui/dialogs/settings_dialog.tscn"), {"page": 2})
 		"accent":
 			_open_dialog(preload("res://ui/dialogs/settings_dialog.tscn"), {"page": 1})
 		"about", "help":
@@ -1350,6 +1352,10 @@ func _run_shot() -> void:
 		# A dialog is a window of its own and does not appear in a picture of
 		# this one. For a screenshot, and only then, they are drawn inside it.
 		get_tree().root.gui_embed_subwindows = true
+	if _shot_view.begins_with("prefs:"):
+		_shot_arg = _shot_view.substr(6)
+		_shot_view = "prefs"
+		get_tree().root.gui_embed_subwindows = true
 	if _shot_view.begins_with("zoomed:"):
 		_shot_arg = _shot_view.substr(7)
 		_shot_view = "zoomed"
@@ -1730,6 +1736,12 @@ func _run_shot() -> void:
 			# Any dialog, by command name, so the scenes can be looked at.
 			_on_command(_shot_arg)
 			for i in 12:
+				await get_tree().process_frame
+		"prefs":
+			# One page of Preferences by number, so each tab can be looked at.
+			_open_dialog(preload("res://ui/dialogs/settings_dialog.tscn"),
+					{"page": int(_shot_arg)})
+			for i in 20:
 				await get_tree().process_frame
 		"picker":
 			var pick = preload("res://ui/dialogs/plugin_picker.tscn").instantiate()
