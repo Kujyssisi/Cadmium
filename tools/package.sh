@@ -137,9 +137,17 @@ build_windows() {
 NSIS_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/cadmium"
 NSIS_VERSION="3.12"
 
+# Sets MAKENSIS and MAKENSIS_HOW, and returns non-zero when there is no way to
+# build a Windows installer here. Deliberately not written to *print* what it
+# found: reading a function's output means running it in a subshell, and a
+# subshell cannot hand back the path it went and fetched.
+MAKENSIS=""
+MAKENSIS_HOW=""
 find_makensis() {
-	if [ -n "${MAKENSIS:-}" ]; then printf 'native'; return 0; fi
-	if command -v makensis >/dev/null; then MAKENSIS="makensis"; printf 'native'; return 0; fi
+	if [ -n "${MAKENSIS:-}" ]; then MAKENSIS_HOW="native"; return 0; fi
+	if command -v makensis >/dev/null; then
+		MAKENSIS="makensis"; MAKENSIS_HOW="native"; return 0
+	fi
 	command -v wine >/dev/null || return 1
 	local dir="$NSIS_CACHE/nsis-$NSIS_VERSION"
 	if [ ! -f "$dir/makensis.exe" ]; then
@@ -153,21 +161,20 @@ find_makensis() {
 	fi
 	[ -f "$dir/makensis.exe" ] || return 1
 	MAKENSIS="$dir/makensis.exe"
-	printf 'wine'
+	MAKENSIS_HOW="wine"
 }
 
 build_windows_installer() {
 	local src="$1"
-	local how
-	if ! how="$(find_makensis)"; then
+	if ! find_makensis; then
 		say "skipping the Windows installer: no makensis and no wine to run it under"
 		return 0
 	fi
 	local setup="$DIST/Cadmium-$VERSION-windows-x86_64-setup.exe"
 	mkdir -p "$DIST"
 	rm -f "$setup"
-	say "installer: $(basename "$setup")  (makensis, $how)"
-	if [ "$how" = "wine" ]; then
+	say "installer: $(basename "$setup")  (makensis, $MAKENSIS_HOW)"
+	if [ "$MAKENSIS_HOW" = "wine" ]; then
 		# NSIS is reading and writing through Wine, so every path it is handed
 		# has to be one Wine understands. Z: is the host filesystem.
 		local wsrc wout wnsi
