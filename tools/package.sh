@@ -107,7 +107,65 @@ build_windows() {
 	say "export: Windows Desktop -> $out"
 	"$GODOT" --headless --path . --export-release "Windows Desktop" "$out/Cadmium.exe"
 	stage_common "$out"
+	mkdir -p "$out/packaging"
+	cp -f packaging/windows/cadmium.ico "$out/packaging/"
 	zip_up "$out" "Cadmium-$VERSION-windows-x86_64"
+	build_windows_installer "$out"
+}
+
+# makensis, native if it is installed and through Wine if it is not. NSIS is a
+# Windows program; its own binaries run perfectly well under Wine, which is
+# already here for testing the Windows build, and that beats a chain of AUR
+# packages for a tool that only the release machine needs.
+NSIS_CACHE="${XDG_CACHE_HOME:-$HOME/.cache}/cadmium"
+NSIS_VERSION="3.12"
+
+find_makensis() {
+	if [ -n "${MAKENSIS:-}" ]; then printf 'native'; return 0; fi
+	if command -v makensis >/dev/null; then MAKENSIS="makensis"; printf 'native'; return 0; fi
+	command -v wine >/dev/null || return 1
+	local dir="$NSIS_CACHE/nsis-$NSIS_VERSION"
+	if [ ! -f "$dir/makensis.exe" ]; then
+		command -v curl >/dev/null || return 1
+		mkdir -p "$NSIS_CACHE"
+		say "fetching NSIS $NSIS_VERSION (once, into $NSIS_CACHE)"
+		curl -sSL -o "$NSIS_CACHE/nsis.zip" \
+			"https://downloads.sourceforge.net/project/nsis/NSIS%203/$NSIS_VERSION/nsis-$NSIS_VERSION.zip" \
+			|| return 1
+		( cd "$NSIS_CACHE" && unzip -q -o nsis.zip ) || return 1
+	fi
+	[ -f "$dir/makensis.exe" ] || return 1
+	MAKENSIS="$dir/makensis.exe"
+	printf 'wine'
+}
+
+build_windows_installer() {
+	local src="$1"
+	local how
+	if ! how="$(find_makensis)"; then
+		say "skipping the Windows installer: no makensis and no wine to run it under"
+		return 0
+	fi
+	local setup="$DIST/Cadmium-$VERSION-windows-x86_64-setup.exe"
+	mkdir -p "$DIST"
+	rm -f "$setup"
+	say "installer: $(basename "$setup")  (makensis, $how)"
+	if [ "$how" = "wine" ]; then
+		# NSIS is reading and writing through Wine, so every path it is handed
+		# has to be one Wine understands. Z: is the host filesystem.
+		local wsrc wout wnsi
+		wsrc="Z:$(printf '%s' "$(cd "$src" && pwd)" | tr '/' '\\')"
+		wout="Z:$(printf '%s' "$DIST" | tr '/' '\\')\\$(basename "$setup")"
+		wnsi="Z:$(printf '%s' "$HERE/packaging/windows" | tr '/' '\\')\\cadmium.nsi"
+		WINEDEBUG=-all wine "$MAKENSIS" -V2 \
+			"-DVERSION=$VERSION" "-DSRC=$wsrc" "-DOUT=$wout" "$wnsi" \
+			|| die "makensis failed"
+	else
+		"$MAKENSIS" -V2 "-DVERSION=$VERSION" "-DSRC=$src" "-DOUT=$setup" \
+			"$HERE/packaging/windows/cadmium.nsi" || die "makensis failed"
+	fi
+	[ -f "$setup" ] || die "makensis reported success but wrote no $setup"
+	say "$(du -h "$setup" | cut -f1)  $setup"
 }
 
 build_linux_arm64() {

@@ -31,7 +31,13 @@ two URLs to drop into `fonts/`.
 ## 1. Prerequisites
 
     # Arch / Manjaro
-    sudo pacman -S --needed scons mingw-w64-gcc zip alsa-lib libx11 ffmpeg
+    sudo pacman -S --needed scons mingw-w64-gcc zip alsa-lib libx11 ffmpeg wine
+
+Wine is only for the Windows *installer*: NSIS is a Windows program, and
+`tools/package.sh` fetches its official binaries once into
+`~/.cache/cadmium/` and runs `makensis.exe` under Wine. Install `makensis`
+natively (or set `MAKENSIS`) and it uses that instead. With neither, the two
+zips are still built and the `-setup.exe` is skipped with a message.
 
 Godot 4.7 with **export templates installed for that exact version**. The
 templates are what the export step turns into an executable; without them the
@@ -85,7 +91,23 @@ One command per target, or all of them:
 
 Each target: cross-builds the engine, exports the game, regenerates the licence
 bundle from the engine, copies `content/` (soundfont and FLARE banks) in, and
-zips the result into `dist/`.
+zips the result into `dist/`. Windows also gets a `-setup.exe`, and the Linux
+zip carries an `install.sh` that installs it properly.
+
+### What "installed" means
+
+`linux` — the zip holds `install.sh`. Run it and Cadmium goes into `~/.local`
+(no root) or, with `--system`, `/opt` and `/usr/local`; either way it writes the
+desktop entry, the hicolor icon and the `.cadmium` MIME type, refreshes the
+desktop/icon/MIME caches, and records a manifest so `uninstall.sh --uninstall`
+removes exactly what went down. `packaging/arch/PKGBUILD` is there for anyone
+who would rather have a real package.
+
+`windows` — `Cadmium-<version>-windows-x86_64-setup.exe` installs per user into
+`%LOCALAPPDATA%\Programs\Cadmium` with no administrator prompt, registers in
+Settings ▸ Apps, associates `.cadmium`, and makes Start Menu entries and an
+`Uninstall.exe`. The plain zip is still published for anyone who wants to run
+it out of a folder.
 
 Version the filenames with:
 
